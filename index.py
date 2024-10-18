@@ -1,179 +1,193 @@
-"""
-Glyph index : imports glyphs from the glyph folder or create them.
-Also creates the main combination paths.
-"""
-
 import os
 import fontforge
-from typing import List, Dict # type: ignore
+import json
+import logging
+from typing import List, Dict, Union
 
-class GlyphIndex:
-    """
-    Glyph index: imports glyphs from the glyph folder or creates them.
-    """
+class GlyphMissingError(Exception):
+    """Exception raised for missing glyphs."""
+    pass
 
-    def __init__(self, font: fontforge.font):
+class GlyphManager:
+    """
+    Imports all the glyphs from the glyph folder and subfolders 
+    and exposes them as a dictionary, using a flattened key structure.
+    """
+    glyphs: Dict[str, fontforge.glyph]
+
+    def __init__(self, font: fontforge.font, glyph_folder: str):
         self.font = font
-        self.glyphs_folder = "./glyphs"
-        self.solo_letters_mapping = {}      # Maps letters to their glyph components
-        self.loaded_glyphs = {}             # Maps glyph names (e.g., 'head.a') to glyph objects
-        self.glyph_sets = {}                # Maps set names to lists of glyph dictionaries
+        self.glyphs_folder = glyph_folder
+        self.glyphs = {}
+        self.import_glyphs()
 
-        self._load_glyphs()
-        self._count_loaded_letters()
-        self.create_standalone_vowels()
-
-    def _load_glyphs(self):
+    def import_glyphs(self):
         """
-        Load all glyphs from the glyphs folder. Raise an error if the folder
-        does not exist or is empty. Adds loaded glyphs as class properties
-        and maintains a mapping from glyph names to glyph objects.
+        Imports glyphs from the folder and its subfolders to self.glyphs.
+        Stores glyphs using a flattened key structure.
         """
         if not os.path.isdir(self.glyphs_folder):
             raise FileNotFoundError(f"Glyphs folder '{self.glyphs_folder}' does not exist.")
 
-        glyph_files = [f for f in os.listdir(self.glyphs_folder) if f.endswith('.eps')]
-        if not glyph_files:
-            raise FileNotFoundError(f"No glyph files found in '{self.glyphs_folder}'.")
+        for dirpath, _, filenames in os.walk(self.glyphs_folder):
+            for filename in filenames:
+                if filename.endswith('.eps'):
+                    # Determine the glyph's key based on the relative path
+                    relative_path = os.path.relpath(dirpath, self.glyphs_folder)
+                    key = os.path.splitext(filename)[0]
+                    if relative_path != '.':
+                        key = f"{relative_path.replace(os.path.sep, '.')}.{key}"
 
-        for file_name in glyph_files:
-            base_name = os.path.splitext(file_name)[0]  # Remove .eps extension
-            parts = base_name.split('.')
+                    # Import the glyph using fontforge
+                    glyph_name = self._construct_glyph_name(dirpath, filename)
+                    glyph = self.font.createChar(-1, glyph_name)
+                    glyph.importOutlines(os.path.join(dirpath, filename))
 
-            # Add glyphs with single-component names only (e.g., head.a, tail.o)
-            if len(parts) >= 2 and len(parts[1]) == 1:
-                if len(parts) == 2:
-                    glyph_type, letter = parts
-                    glyph_name = f"{glyph_type}.{letter}"
-                    glyph_property_name = f"glyph_{glyph_type}_{letter}"
+                    # print(f"{glyph_name} ADDED as {os.path.join(dirpath, filename)}")
+                    
+                    # Add the glyph directly to the flat glyph dictionary
+                    self.glyphs[key] = glyph
 
-                elif len(parts) == 3:
-                    glyph_type, letter, next = parts
-                    glyph_name = f"{glyph_type}.{letter}.{next}"
-                    glyph_property_name = f"glyph_{glyph_type}_{letter}_{next}"
+    def glyph_exists(self, glyph_name: str) -> bool:
+        return glyph_name in self.glyphs.keys()
 
-                elif len(parts) == 4:
-                    glyph_type, letter, next, next2 = parts
-                    glyph_name = f"{glyph_type}.{letter}.{next}.{next2}"
-                    glyph_property_name = f"glyph_{glyph_type}_{letter}_{next}_{next2}"
-                
-
-                # Create the glyph without a Unicode mapping
-                glyph = self.font.createChar(-1, glyph_name)
-                glyph.importOutlines(os.path.join(self.glyphs_folder, file_name))
-
-                # Add the glyph as a property of the class
-                setattr(self, glyph_property_name, glyph)
-
-                # Update the solo_letters_mapping dictionary
-                if letter not in self.solo_letters_mapping:
-                    self.solo_letters_mapping[letter] = {}
-                self.solo_letters_mapping[letter][glyph_type] = glyph
-
-                # Update the loaded_glyphs dictionary
-                self.loaded_glyphs[glyph_name] = glyph
-
-    def _count_loaded_letters(self):
+    def _construct_glyph_name(self, dirpath: str, filename: str) -> str:
         """
-        Debug print the number of unique single-letter glyphs loaded.
-        """
-        unique_letters = set(self.solo_letters_mapping.keys())
-        print(f"Loaded {len(unique_letters)} unique single-letter glyphs: {', '.join(sorted(unique_letters))}")
+        Constructs the glyph name based on the subfolder structure and file name.
 
-    def exists(self, glyph_name: str) -> bool:
+        :return: The created glyph name.
         """
-        Check if a glyph with the given name exists.
+        base_name = os.path.splitext(filename)[0]
+        rel_path = os.path.relpath(dirpath, self.glyphs_folder)
+        relative_glyph_name = rel_path.replace(os.path.sep, '.')
 
-        :param glyph_name: The name of the glyph to check (e.g., 'head.a').
-        :return: True if the glyph exists, False otherwise.
+        if len(relative_glyph_name) > 1:  # more than a "." was detected
+            glyph_name = f"{relative_glyph_name}.{base_name}"
+        else:
+            glyph_name = base_name
+
+        return glyph_name
+
+    def __getitem__(self, glyph_name: str) -> fontforge.glyph:
         """
-        return glyph_name in self.loaded_glyphs
-
-    def create_set(self, set_name: str, glyph_names: List[str]):
+        Returns the glyph with the given name.
+        Raises a KeyError if the glyph does not exist.
         """
-        Create a set of glyphs and store it in the class.
+        if glyph_name in self.glyphs:
+            return self.glyphs[glyph_name]
+        else:
+            raise KeyError(f"Glyph '{glyph_name}' does not exist.")
 
-        :param set_name: The name of the set to create.
-        :param glyph_names: A list of glyph names to include in the set.
-        :raises ValueError: If any of the glyphs in glyph_names do not exist.
+    def __setitem__(self, key: str, glyph: fontforge.glyph):
         """
-        if set_name in self.glyph_sets:
-            raise ValueError(f"Set '{set_name}' already exists.")
+        Allows adding or updating a glyph using subscript notation.
+        """
+        self.glyphs[key] = glyph
 
-        glyph_set = []
+class GlyphIndex(GlyphManager):
+    """
+    Imports all the glyphs from the glyph folder and subfolders 
+    and exposes them as a dictionary with a flattened key structure.
+    Also provides accessor functions based on a "glyph set" config file.
+    """
+    def __init__(self, font: fontforge.font, glyph_folder: str, gset_path: str, default_glyph: str):
+        self.gset_path = gset_path
+        self.glyphs_folder = glyph_folder
+        self.default_glyph = default_glyph
+
+        super().__init__(font, glyph_folder)
+
+        # Checks if sets components were loaded, load them as default otherwise
+        missing_glyphs = self._check_sets()
+        for glyph_name in missing_glyphs:
+            glyph = self.font.createChar(-1, glyph_name) # CREATE missing glyphs as default glyphs to be used as intermediate steps in lookups
+            glyph.importOutlines(os.path.join(self.glyphs_folder, self.default_glyph))
+        if len(missing_glyphs) > 0:
+            print(f"\nLoaded missing glyphs as DEFAULT GLYPH : {missing_glyphs}\n")
+            # raise GlyphMissingError(missing_glyphs)
+
+    def gset(self, set_name: str) -> List[str]:
+        """
+        Returns a set of glyphs defined in sets.json as a list of glyph names.
+        Raises a KeyError if the set does not exist.
+        """
+        assert self.gset_path, "gset_path must be set"
+        
+        with open(self.gset_path, "r") as f:
+            sets = json.load(f)
+
+        if set_name not in sets.keys():
+            raise KeyError(f"Glyph set '{set_name}' does not exist.")
+
+        glyph_names = sets[set_name]
+        return glyph_names
+    
+    def gset_glyphs(self, set_name: str) -> List[fontforge.glyph]:
+        """
+        Returns a set of glyphs defined in sets.json as a list of GLYPH objects.
+        """
+        glyph_names = self.gset(set_name)
+        return [self[glyph_name] for glyph_name in glyph_names]
+    
+    def gset_exists(self, set_name: str) -> bool:
+        with open(self.gset_path, "r") as f:
+            sets = json.load(f)
+        return set_name in sets.keys()
+    
+    def get_glyph_or_gset(self, input: str) -> List[str]:
+        """
+        Returns the name of the glyph in a standard List, 
+        or a gset if the input is the name of a gset.
+        Raise an error if the name was neither part of the gsets or the loaded glyphs.
+        """
+        if self.glyph_exists(input):
+            return [input]
+        elif self.gset_exists(input):
+            return self.gset(input)
+        else:
+            raise KeyError(f"Neither a glyph nor a glyph set found for '{input}'.")
+
+
+    def _check_sets(self) -> List[str]:
+        """
+        FOR DEFAULT LOAD
+        Checks if all the glyphs defined in the gset_path json have been loaded.
+        Returns a list of (missing glyph name) to be loaded as default glyphs.
+        """
+        assert self.gset_path, "gset_path must be set"
+        
+        with open(self.gset_path, "r") as f:
+            sets = json.load(f)
+
         missing_glyphs = []
-        for name in glyph_names:
-            if self.exists(name):
-                glyph_set.append({name: self.loaded_glyphs[name]})
-            else:
-                missing_glyphs.append(name)
-
-        if missing_glyphs:
-            raise ValueError(f"The following glyph(s) do not exist and cannot be added to the set '{set_name}': {', '.join(missing_glyphs)}")
-
-        self.glyph_sets[set_name] = glyph_set
-        print(f"Set '{set_name}' created with {len(glyph_set)} glyph(s).")
-
-    def get_set(self, set_name: str) -> List[Dict[str, fontforge.glyph]]:
+        
+        for set_name, glyph_names in sets.items():
+            for glyph_name in glyph_names:
+                try:
+                    self[glyph_name]
+                except KeyError:
+                    if not glyph_name in missing_glyphs and not " " in glyph_name and not "#" in glyph_name:
+                        missing_glyphs.append(f"{glyph_name}")
+        
+        return missing_glyphs
+    
+    def _check_sets_no_load(self) -> List[str]:
         """
-        Retrieve a set of glyphs by its name.
-
-        :param set_name: The name of the set to retrieve.
-        :return: A list of dictionaries mapping glyph names to glyph objects.
-        :raises KeyError: If the set_name does not exist.
+        Checks if all the glyphs defined in the gset_path json have been loaded.
+        Returns a list of (set name).(missing glyph name) indicating which glyphs were missing.
         """
-        if set_name not in self.glyph_sets:
-            raise KeyError(f"Set '{set_name}' does not exist.")
-        return self.glyph_sets[set_name]
+        assert self.gset_path, "gset_path must be set"
+        
+        with open(self.gset_path, "r") as f:
+            sets = json.load(f)
 
-    def create_standalone_vowels(self):
-        """
-        Create glyphs for standalone vowels by merging their head and tail components.
-        This method can be extended to handle more vowels as needed.
-        """
-        vowels = ['a', 'e', 'o', 'u']  # Extend this list as needed
-        for vowel in vowels:
-            head_key = 'head'
-            tail_key = 'tail'
-
-            # Ensure both head and tail components are loaded for the vowel
-            if (vowel in self.solo_letters_mapping and
-                head_key in self.solo_letters_mapping[vowel] and
-                tail_key in self.solo_letters_mapping[vowel]):
-
-                # Create the standalone vowel glyph with the appropriate Unicode code point
-                unicode_code = ord(vowel)
-                standalone_glyph = self.font.createChar(unicode_code, vowel)
-                pen = standalone_glyph.glyphPen()
-
-                # Draw head component at original position
-                self.solo_letters_mapping[vowel][head_key].draw(pen)
-
-                # Draw tail component shifted horizontally by 300 units
-                transform_matrix = (1, 0, 0, 1, 300, 0)  # Identity matrix with translation
-                self.solo_letters_mapping[vowel][tail_key].draw(pen, transform_matrix)
-
-                print(f"Created standalone glyph for vowel '{vowel}'.")
-            else:
-                print(f"Skipping creation of standalone glyph for vowel '{vowel}' as required components are missing.")
-
-    def createset_from_existing_sets(self, new_set_name: str, existing_set_names: List[str]):
-        """
-        Create a new set by combining existing sets.
-
-        :param new_set_name: The name of the new set to create.
-        :param existing_set_names: A list of existing set names to combine.
-        :raises KeyError: If any of the existing sets do not exist.
-        """
-        combined_set = []
-        for existing_set in existing_set_names:
-            if existing_set not in self.glyph_sets:
-                raise KeyError(f"Set '{existing_set}' does not exist and cannot be combined.")
-            combined_set.extend(self.glyph_sets[existing_set])
-
-        if new_set_name in self.glyph_sets:
-            raise ValueError(f"Set '{new_set_name}' already exists.")
-
-        self.glyph_sets[new_set_name] = combined_set
-        print(f"Set '{new_set_name}' created by combining sets: {', '.join(existing_set_names)}.")
-
+        missing_glyphs = []
+        
+        for set_name, glyph_names in sets.items():
+            for glyph_name in glyph_names:
+                try:
+                    self[glyph_name]
+                except KeyError:
+                    missing_glyphs.append(f"{set_name}.{glyph_name}")
+        
+        return missing_glyphs

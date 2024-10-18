@@ -1,4 +1,6 @@
-# FontForge script to export each glyph as a .eps file
+"""
+FontForge script to export each glyph as a .eps file.
+"""
 
 import fontforge
 import os

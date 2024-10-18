@@ -1,0 +1,11 @@
+{
+    "a": ["head.a", "tail.a"],
+    "o": ["head.o", "tail.o"],
+
+    "a height on the left": ["a", "e"],
+    "a height on the right": ["a"],
+
+    "input glyphs : vowels": ["a", "e", "p", "o", "b", "u", "c", "i", "y"],
+    "input glyphs : conosnnants": ["k", "t", "s", "f", "n", "g", "d", "q", "h", "l", "j"],
+    "structure glyphs : height": ["a_height", "o_height", "hanging_b_height", "t_height", "d_height", "k_height"]
+}
