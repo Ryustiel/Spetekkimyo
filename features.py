@@ -1,34 +1,312 @@
 """
-Define how chains of glyphs are produced from a sentence input.
-Define classes of characters via index (relevant checks and imports are run in index).
+Create an interface on fontforge to create lookup tables easily.
 """
 import fontforge
 from index import GlyphIndex
-from lookups import *
-from typing import Union, List
+from typing import Union, List, Dict
+from abc import ABC, abstractmethod
 
-class Features():
+GLYPH = str
+SET = str
+LOOKUP = str
+CLASS = str
+
+class Component(ABC):
+    """
+    A string component to be parsed into a feature string.
+    """
+    @abstractmethod
+    def compile(self) -> str:
+        ...
+    def __str__(self) -> str:
+        return self.compile()
+
+
+class ClassIndex(Component):
+    """
+    Manages glyph classes, create glyph classes dynamically when needed.
+    """
+    current_id = 0
+    classes: Dict = {}
 
     def __init__(self, font: fontforge.font, index: GlyphIndex):
         self.font = font
         self.index = index
-        self.classes = ClassIndex(font, index)
-        self.substitutions = SubstitutionManager(font, index, self.classes)
 
-        # Runs feature creation functions
-        self.HEIGHT_ADJUSTMENT()
+    def create_class(self, glyphs: List[GLYPH], class_name: str = None) -> CLASS:
+        if not class_name: class_name = f"@CLASS_{self.current_id}"
+        elif class_name[0] != "@": class_name = "@" + class_name  # ensure the class name starts with a "@" character
+        self.classes[class_name] = glyphs
+        self.current_id += 1
+        return class_name
 
-
-    def HEIGHT_ADJUSTMENT(self):
+    def exists(self, glyphs: Union[CLASS, List[GLYPH]]) -> bool:
+        if isinstance(glyphs, str):
+            class_name = glyphs
+            return (class_name if class_name[0] == '@' else '@' + class_name) in self.classes.keys()  # Checks if the class exists
+        else:
+            return any([glyphs == glyph_class for glyph_class in self.classes.values()])  # Checks if the glyph list exists
+    
+    def get_class(self, glyphs: Union[CLASS, List[GLYPH]], new_class_name: str = None) -> CLASS:
         """
-        Create height adjustment characters by adding 'a_height' glyph before letters that are not
-        adjacent to other letters. If a letter has another letter before or after it, it will be
-        skipped and no height adjustment will be added.
+        Provide the class id for a given set of glyphs.
+        If the class does not exist create a new one for the set of glyphs.
 
-        This function sets up GSUB tables and context chain rules to achieve this behavior.
+        - new_class_name: The name of the new class if it has to be created
         """
-        lookup1 = ContextualLookup(self.font, self.index, self.substitutions, "STEP 1")
-        lookup2 = ContextualLookup(self.font, self.index, self.substitutions, "STEP 2")
+        if isinstance(glyphs, str): 
+            class_name = glyphs
+            if self.exists(class_name): 
+                return self.classes[class_name if class_name[0] == "@" else "@" + class_name]
+            else: 
+                raise KeyError(f"Could not find class {class_name if class_name[0] == '@' else '@' + class_name}")
 
-        # lookup1.APPEND_LEFT([], "a", [], "e")
-        lookup2.REPLACE([], "a", [], "o")
+        for class_name, class_content in self.classes.items():
+            if glyphs == class_content: 
+                print(f"FOUND EXISTING CLASS {class_name} for {glyphs}")
+                return class_name
+
+        # Create a new class
+        if new_class_name in self.classes.keys():  # Do not use the class_name to create the new class
+            new_class_name = None
+        return self.create_class(glyphs, new_class_name)
+    
+    def compile(self) -> str:
+        """
+        Return the definition of all glyph classes.
+        Example: 
+            @trigger = [ o b ]; 
+            @target = [ a e ];
+        """
+        compiled_string = ""
+        for class_name, glyphs in self.classes.items():
+            compiled_string += f"{class_name} = [{' '.join(glyphs)}];\n"
+        return compiled_string
+
+
+class Instruction(Component):
+    """
+    A lookup instruction.
+
+    /!\ The base Instruction class do not define its own compile method : Only its child classes do.
+    """
+    @abstractmethod
+    def validate(self, glyphs: GlyphIndex, classes: ClassIndex):
+        ...
+    @abstractmethod
+    def compile(self) -> str:
+        ...
+    def format_one(self, item: Union[GLYPH, SET, CLASS, List[GLYPH]], glyphs: GlyphIndex, classes: ClassIndex) -> Union[CLASS, GLYPH]:
+        """
+        Converts gset names to classes, glyph lists to classes, does NOT convert single glyphs to classes as it is not needed.
+        Also checks if a referenced class exists, corrects class names with missing @
+        """
+        if isinstance(item, str):
+            if item[0] == "@":
+                return item
+            elif classes.exists(item):  # item is a class without a @
+                return "@" + item
+            elif glyphs.gset_exists(item):  # item is a set name
+                set_name = item
+                return classes.get_class(glyphs.gset(set_name), set_name)  # create glyph
+            elif glyphs.glyph_exists(item):  # is a glyph name
+                return item  # a signle glyph does not need a class alias 
+            else:
+                raise ValueError(f"{item} is neither a class nor a set name nor a glyph. It cannot be used in this instruction.")
+        elif isinstance(item, list):
+            if any([not glyphs.glyph_exists(i) for i in item]): 
+                raise ValueError(f"An instruction received {item} as a list of glyphs for a class definition. One of those glyphs does not exist. Check for accidental @ or gset names in that glyph list.")
+            else:
+                return classes.get_class(item)
+        else:
+            raise ValueError(f"Expected a string (glyph, gset, class name) or a list of strings (glyph names) for item. Instead got {type(item)}")
+
+
+class Lookup(Component):
+    instruction_type = None  # type of the instructions that the Lookup accepts
+    instructions: List[Instruction] = []
+
+    def __init__(self, name: str, font: fontforge.font, glyphs: GlyphIndex, classes: ClassIndex):
+        self.font = font
+        self.glyphs = glyphs
+        self.classes = classes
+        self.name: str = name  # the name of the substitution table (both in fontforge and in the substitution manager system)
+
+    @abstractmethod
+    def is_conflicting(self, instruction: Instruction):
+        ...
+
+    def add_instruction(self, instruction: Instruction):
+
+        if not isinstance(instruction, self.instruction_type):
+            raise ValueError(f"Tried to add {instruction.__class__.__name__} but the lookup table only accepts {self.instruction_type.__name__} instructions.")
+
+        if self.is_conflicting(instruction): 
+            raise ValueError(f"Tried to add {instruction} but it is conflicting with an instruction in the lookup table. This error should not happen with auto-generated lookups.")
+        self.instructions.append(instruction)
+
+    def compile(self) -> str:
+        """
+        Create the lookup instruction list.
+        Example: 
+            lookup ccmp_lookup {
+                sub @trigger @trigger @target' @trigger by p;
+                sub @trigger @target' @trigger by i;
+            } ccmp_lookup;
+        """
+        compiled_string = f"\tlookup {self.name}" + " {\n"
+        for instruction in self.instructions:
+            compiled_string += "\t\t" + instruction.compile() + "\n"
+        compiled_string += "\t} " + self.name + ";\n"  # close the lookup block and the substitution table block
+        return compiled_string
+
+
+class SubInstruction(Instruction):
+    backtrack: List[Union[CLASS, GLYPH]]
+    replacing: Union[CLASS, GLYPH]
+    lookahead: List[Union[CLASS, GLYPH]]
+    replacement: List[GLYPH]
+
+    def __init__(self, 
+                backtrack: List[Union[GLYPH, SET, CLASS, List[GLYPH]]] = [], 
+                replacing: Union[GLYPH, SET, CLASS, List[GLYPH]] = "",
+                lookahead: List[Union[GLYPH, SET, CLASS, List[GLYPH]]] = [],
+                replacement: Union[GLYPH, SET, List[GLYPH]] = "",
+                ):
+        self.backtrack = backtrack
+        self.replacing = replacing
+        self.lookahead = lookahead
+        self.replacement = replacement
+
+    def validate(self, glyphs: GlyphIndex, classes: ClassIndex):
+        """
+        Interpret set names, glyph names, lists of glyphs and class names with missing @ properly.
+        Create glyph classes whenever it is needed.
+        """
+        self.backtrack = [self.format_one(item, glyphs, classes) for item in self.backtrack]
+        self.replacing = self.format_one(self.replacing, glyphs, classes)
+        self.lookahead = [self.format_one(item, glyphs, classes) for item in self.lookahead]
+        
+        if self.replacement[0] == "@":
+            raise ValueError(f"The replacement glyph has a value of {self.replacement} which looks like a class name. This is likely an error. Only glyph lists can be used as replacements.")
+        elif any([not glyphs.glyph_exists(i) for i in self.replacing]): 
+            raise ValueError(f"An instruction received {self.replacing} as a glyph list for a replacement glyph. Replacement glyphs cannot be gsets nor classes. Check for accidental @ or gset names in that glyph list.")
+
+    def compile(self):
+        """
+        Return the line corresponding to one single instruction.
+        Example: 
+            sub @trigger @trigger @target' @trigger by p;
+        """
+        compiled_string = f"sub {' '.join(self.backtrack) + ' ' if self.backtrack else ''}{self.replacing}'{' ' + ' '.join(self.lookahead) if self.lookahead else ''} by {' '.join(self.replacement)};"
+        return compiled_string
+
+
+class SubLookup(Lookup):
+    """
+    Metadata for a substitution table.
+    """
+    instruction_type = SubInstruction
+    instructions: List[SubInstruction] = []
+
+    def is_conflicting(self, instruction: SubInstruction) -> bool:
+        """
+        Whether this instruction is conflicting with any instruction in this lookup.
+
+        An instruction is conflicting if it has : 
+        - A replacement glyph that appear in the backtrack of another instruction. (or in the lookahead if the lookup is reversed)
+        - A backtrack glyph that appear in the replacement of an existing instruction (or lookahead respectively).
+        - The same replacing as an existing instruction.
+        """
+        for existing_instruction in self.instructions:
+            return (
+                any(x in existing_instruction.replacement for x in instruction.backtrack) or
+                any(x in existing_instruction.backtrack for x in instruction.replacement) or
+                any(x == instruction.replacing for x in existing_instruction.replacing)
+            )
+
+
+class Feature(Component):
+    """
+    Generate a feature item for the font.
+    Provide lookup instruction presets.
+    """
+    lookups: List[Lookup] = []
+    counter = 0
+
+    def __init__(self, name: str, font: fontforge.font, glyphs: GlyphIndex, classes: ClassIndex):
+        self.name = name
+        self.font = font
+        self.glyphs = glyphs
+        self.classes = classes
+
+    def extend_or_create_lookup(self, instruction: Instruction):
+        """
+        Find a lookup that is compatible with the given instruction
+        or create a new one if none is found.
+        """
+        instruction.validate(self.glyphs, self.classes)  # Validate the instruction, this function raises the appropriate Exceptions
+
+        for lookup in self.lookups:
+            if isinstance(instruction, lookup.instruction_type) and not lookup.is_conflicting(instruction):
+                lookup.add_instruction(instruction)
+                return
+            
+        # Create a new lookup
+        self.counter += 1
+
+        match type(instruction).__name__:
+            case "SubInstruction":
+                new_name = self.name + "_" + SubLookup.__name__ + "_" + str(self.counter)
+                lookup = SubLookup(new_name, self.font, self.glyphs, self.classes)
+                lookup.add_instruction(instruction)
+                self.lookups.append(lookup)
+            case _:
+                raise ValueError(f"Feature {self.name} can not contain {type(instruction).__name__} instructions.")
+
+    def SUBSTITUTION(self, backtrack: Union[List, SubInstruction], replacing: Union[List, str] = None, lookahead: List = None, replacement: Union[List, str] = None):
+        """
+        The default substitution implementation.
+        """
+        if isinstance(backtrack, SubInstruction):
+            instruction = backtrack
+        elif isinstance(backtrack, list):
+            instruction = SubInstruction(backtrack=backtrack, replacing=replacing, lookahead=lookahead, replacement=replacement)
+        self.extend_or_create_lookup(instruction)
+
+    def REPLACE(self, replacing: GLYPH, replacement: Union[List[GLYPH], GLYPH]):
+        self.SUBSTITUTION([], replacing, [], replacement)
+
+    def APPEND_LEFT(self,  backtrack: List[GLYPH], replacing: GLYPH, lookahead: List[GLYPH], left:  Union[GLYPH, SET, List[GLYPH]]):
+        if isinstance(left, str): left = self.glyphs.get_glyph_or_gset(left)  # Input can be gset name
+        left.insert(0, replacing)  # Recalculating replacement
+        self.SUBSTITUTION(backtrack, replacing, lookahead, left)
+
+    def SKIP(self, backtrack: List[GLYPH], replacing: GLYPH, lookahead: List[GLYPH]):
+        """
+        Skips the update of the glyph in that particular context at this point in the lookup.
+        """
+        self.REPLACE(backtrack, replacing, lookahead, replacing)  # <=> Replacing the glyph by itself 
+        # (because operations are limited to 1 per glyph per lookup, doing this disables any further operation)
+
+    def compile(self):
+        """
+        Create the feature definition in the font.
+        Example:
+            feature ccmp {
+                script DFLT;
+                language dflt;
+                script latn;
+                language dflt;
+
+                lookup ccmp_lookup {
+                    sub @trigger @trigger @target' @trigger by p;
+                } ccmp_lookup;
+            } ccmp;
+        """
+        compiled_string = f"feature {self.name}" + " {\n"
+        compiled_string += f"\tscript DFLT;\n\tlanguage dflt;\n\tscript latn;\n\tlanguage dflt;\n\n"  # Add language string
+        for lookup in self.lookups:
+            compiled_string += lookup.compile()
+        compiled_string += "} " + f"{self.name};\n"  # close the feature block
+        return compiled_string

@@ -1,0 +1,21 @@
+
+# Simple .fea file for specific contextual substitution with classes
+
+# Define classes
+@trigger = [ o b ];    # Class for trigger characters
+@target = [ a e ];     # Class for target characters
+
+# Chaining contextual substitution feature
+feature ccmp {
+    script DFLT;           # Apply feature to the default script
+    language dflt;         # Specify the default language
+    script latn;           # Apply feature to the Latin script
+    language dflt;         # Apply to the default language of Latin script
+
+    lookup ccmp_lookup {
+        # Substitute @target by 'p' if surrounded by @trigger (contextual substitution)
+        sub @trigger @trigger @target' @trigger by p;
+    } ccmp_lookup;
+} ccmp;
+
+# End of the .fea file

@@ -1,6 +1,6 @@
 {
-    "a": ["head.a", "tail.a"],
-    "o": ["head.o", "tail.o"],
+    "build a": ["head.a", "tail.a"],
+    "build o": ["head.o", "tail.o"],
 
     "a height on the left": ["a", "e"],
     "a height on the right": ["a"],
