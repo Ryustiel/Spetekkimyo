@@ -11,6 +11,18 @@ SET = str
 LOOKUP = str
 CLASS = str
 
+
+def install_feature(feature_string: str, feature_path: str, font: fontforge.font, debug=False):
+    if debug: print(f"RESULT : \n{feature_string}")
+
+    try:
+        with open(feature_path, "w") as f: f.write(feature_string)
+        font.mergeFeature(feature_path)
+        print("Features successfully imported.")
+    except Exception as e:
+        print(f"An error occurred while importing features: {e}")
+
+
 class Component(ABC):
     """
     A string component to be parsed into a feature string.

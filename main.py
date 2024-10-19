@@ -6,10 +6,11 @@ CREATE FONT
 """
 import fontforge
 from index import GlyphIndex
-from features import ClassIndex, Feature
+from features import ClassIndex, Feature, install_feature
 import os
 
 DEFAULT_GLYPH = "head/a.eps"
+FEATURE_PATH = "features.fea"
 OUTPUT_PATH = "C:/Users/rapha/Documents/ExampleFont.otf"
 
 print(os.getcwd())  # Print the current working directory
@@ -17,28 +18,17 @@ print(os.getcwd())  # Print the current working directory
 font = fontforge.font()
 glyphs = GlyphIndex(font, "glyphs/", "sets.json", DEFAULT_GLYPH)  # Loads the glyphs from the folder
 classes = ClassIndex(font, glyphs)
+feature = Feature("ccmp", font, glyphs, classes)
 
-# METADATA
+# FONT METADATA
 font.fontname = "ExampleFont"
 font.fullname = "Example Font"
 font.familyname = "Example Font Family"
 font.encoding = "UnicodeFull"  # Use full Unicode encoding
 
-feature = Feature("ccmp", font, glyphs, classes)
-
 feature.REPLACE("a", "build a")
+...
 
-feature_string = str(classes) + " \n" + str(feature)
-
-print("RESULT : \n")
-print(feature_string)
-
-try:
-    with open("features.fea", "w") as f: f.write(feature_string)
-    font.mergeFeature("features.fea")
-    print("Features successfully imported.")
-except Exception as e:
-    print(f"An error occurred while importing features: {e}")
+install_feature(str(classes) + " \n" + str(feature), FEATURE_PATH, font, True)
 
 font.generate(OUTPUT_PATH)
-print("Font generated")
