@@ -10,6 +10,7 @@ from features import ClassIndex, Feature
 import os
 
 DEFAULT_GLYPH = "head/a.eps"
+OUTPUT_PATH = "C:/Users/rapha/Documents/ExampleFont.otf"
 
 print(os.getcwd())  # Print the current working directory
 
@@ -25,19 +26,19 @@ font.encoding = "UnicodeFull"  # Use full Unicode encoding
 
 feature = Feature("ccmp", font, glyphs, classes)
 
-feature.REPLACE("a", "o")
-feature.SUBSTITUTION(["o", "b"], ["e", "u"], ["o", "b"], "o")
+feature.REPLACE("a", "build a")
 
-print(classes)
-print(feature)
+feature_string = str(classes) + " \n" + str(feature)
 
-# with open("features.fea", "w") as f:
-#     f.write()
+print("RESULT : \n")
+print(feature_string)
 
 try:
+    with open("features.fea", "w") as f: f.write(feature_string)
     font.mergeFeature("features.fea")
     print("Features successfully imported.")
 except Exception as e:
     print(f"An error occurred while importing features: {e}")
 
-font.generate("C:/Users/rapha/Documents/ExampleFont.otf")
+font.generate(OUTPUT_PATH)
+print("Font generated")

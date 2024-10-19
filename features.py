@@ -26,15 +26,14 @@ class ClassIndex(Component):
     """
     Manages glyph classes, create glyph classes dynamically when needed.
     """
-    current_id = 0
-    classes: Dict = {}
-
     def __init__(self, font: fontforge.font, index: GlyphIndex):
         self.font = font
         self.index = index
+        self.current_id = 0
+        self.classes: Dict = {}
 
     def create_class(self, glyphs: List[GLYPH], class_name: str = None) -> CLASS:
-        if not class_name: class_name = f"@CLASS_{self.current_id}"
+        if not class_name: class_name = f"@class{self.current_id}"
         elif class_name[0] != "@": class_name = "@" + class_name  # ensure the class name starts with a "@" character
         self.classes[class_name] = glyphs
         self.current_id += 1
@@ -62,9 +61,7 @@ class ClassIndex(Component):
                 raise KeyError(f"Could not find class {class_name if class_name[0] == '@' else '@' + class_name}")
 
         for class_name, class_content in self.classes.items():
-            if glyphs == class_content: 
-                print(f"FOUND EXISTING CLASS {class_name} for {glyphs}")
-                return class_name
+            if glyphs == class_content: return class_name
 
         # Create a new class
         if new_class_name in self.classes.keys():  # Do not use the class_name to create the new class
@@ -80,7 +77,7 @@ class ClassIndex(Component):
         """
         compiled_string = ""
         for class_name, glyphs in self.classes.items():
-            compiled_string += f"{class_name} = [{' '.join(glyphs)}];\n"
+            compiled_string += f"{class_name} = [ {' '.join(glyphs)} ];\n"
         return compiled_string
 
 
@@ -124,13 +121,13 @@ class Instruction(Component):
 
 class Lookup(Component):
     instruction_type = None  # type of the instructions that the Lookup accepts
-    instructions: List[Instruction] = []
 
     def __init__(self, name: str, font: fontforge.font, glyphs: GlyphIndex, classes: ClassIndex):
         self.font = font
         self.glyphs = glyphs
         self.classes = classes
         self.name: str = name  # the name of the substitution table (both in fontforge and in the substitution manager system)
+        self.instructions: List[Instruction] = []
 
     @abstractmethod
     def is_conflicting(self, instruction: Instruction):
@@ -139,10 +136,10 @@ class Lookup(Component):
     def add_instruction(self, instruction: Instruction):
 
         if not isinstance(instruction, self.instruction_type):
-            raise ValueError(f"Tried to add {instruction.__class__.__name__} but the lookup table only accepts {self.instruction_type.__name__} instructions.")
+            raise ValueError(f"Tried to add [{instruction.__class__.__name__}] but the lookup table only accepts {self.instruction_type.__name__} instructions.")
 
         if self.is_conflicting(instruction): 
-            raise ValueError(f"Tried to add {instruction} but it is conflicting with an instruction in the lookup table. This error should not happen with auto-generated lookups.")
+            raise ValueError(f"Tried to add [{instruction}] but it is conflicting with {self.is_conflicting(instruction, True)} in the lookup table. This error should not happen with auto-generated lookups.")
         self.instructions.append(instruction)
 
     def compile(self) -> str:
@@ -157,26 +154,21 @@ class Lookup(Component):
         compiled_string = f"\tlookup {self.name}" + " {\n"
         for instruction in self.instructions:
             compiled_string += "\t\t" + instruction.compile() + "\n"
-        compiled_string += "\t} " + self.name + ";\n"  # close the lookup block and the substitution table block
+        compiled_string += "\t} " + self.name + ";"  # close the lookup block and the substitution table block
         return compiled_string
 
 
 class SubInstruction(Instruction):
-    backtrack: List[Union[CLASS, GLYPH]]
-    replacing: Union[CLASS, GLYPH]
-    lookahead: List[Union[CLASS, GLYPH]]
-    replacement: List[GLYPH]
-
     def __init__(self, 
                 backtrack: List[Union[GLYPH, SET, CLASS, List[GLYPH]]] = [], 
                 replacing: Union[GLYPH, SET, CLASS, List[GLYPH]] = "",
                 lookahead: List[Union[GLYPH, SET, CLASS, List[GLYPH]]] = [],
                 replacement: Union[GLYPH, SET, List[GLYPH]] = "",
                 ):
-        self.backtrack = backtrack
-        self.replacing = replacing
-        self.lookahead = lookahead
-        self.replacement = replacement
+        self.backtrack: List[Union[CLASS, GLYPH]] = backtrack
+        self.replacing: Union[CLASS, GLYPH] = replacing
+        self.lookahead: List[Union[CLASS, GLYPH]] = lookahead
+        self.replacement: List[GLYPH] = replacement
 
     def validate(self, glyphs: GlyphIndex, classes: ClassIndex):
         """
@@ -187,10 +179,15 @@ class SubInstruction(Instruction):
         self.replacing = self.format_one(self.replacing, glyphs, classes)
         self.lookahead = [self.format_one(item, glyphs, classes) for item in self.lookahead]
         
-        if self.replacement[0] == "@":
-            raise ValueError(f"The replacement glyph has a value of {self.replacement} which looks like a class name. This is likely an error. Only glyph lists can be used as replacements.")
-        elif any([not glyphs.glyph_exists(i) for i in self.replacing]): 
-            raise ValueError(f"An instruction received {self.replacing} as a glyph list for a replacement glyph. Replacement glyphs cannot be gsets nor classes. Check for accidental @ or gset names in that glyph list.")
+        if isinstance(self.replacement, str):
+            if self.replacement[0] == "@":
+                raise ValueError(f"The replacement glyph has a value of {self.replacement} which looks like a class name. This is likely an error. Only glyph lists can be used as replacements.")
+            elif glyphs.gset_exists(self.replacement):
+                self.replacement = glyphs.gset(self.replacement)  # Loads the gset as a list of glyphs
+            elif not glyphs.glyph_exists(self.replacement):  # Is neither a gset nor a glyph
+                raise ValueError(f"Replacement value '{self.replacement}' is neither a glyph nor a gset. It cannot be used in this instruction.")
+        elif any([not glyphs.glyph_exists(i) for i in self.replacement]): 
+            raise ValueError(f"An instruction received {self.replacement} as a glyph list for a replacement glyph. Replacement glyphs in that list cannot be gsets names nor classes (unlike backtracks and lookaheads). Check for accidental @ or gset names in that glyph list.")
 
     def compile(self):
         """
@@ -207,9 +204,8 @@ class SubLookup(Lookup):
     Metadata for a substitution table.
     """
     instruction_type = SubInstruction
-    instructions: List[SubInstruction] = []
 
-    def is_conflicting(self, instruction: SubInstruction) -> bool:
+    def is_conflicting(self, instruction: SubInstruction, return_conflicts: bool = False) -> bool:
         """
         Whether this instruction is conflicting with any instruction in this lookup.
 
@@ -218,12 +214,22 @@ class SubLookup(Lookup):
         - A backtrack glyph that appear in the replacement of an existing instruction (or lookahead respectively).
         - The same replacing as an existing instruction.
         """
+        conflicts = []
         for existing_instruction in self.instructions:
-            return (
-                any(x in existing_instruction.replacement for x in instruction.backtrack) or
-                any(x in existing_instruction.backtrack for x in instruction.replacement) or
-                any(x == instruction.replacing for x in existing_instruction.replacing)
-            )
+
+            for x in instruction.backtrack:
+                if x in existing_instruction.replacement:
+                    conflicts.append(existing_instruction)
+            for x in instruction.replacement:
+                if x in existing_instruction.backtrack:
+                    conflicts.append(existing_instruction)
+            for x in existing_instruction.replacing:
+                if x == instruction.replacing:
+                    conflicts.append(existing_instruction)
+
+        if return_conflicts:
+            return [str(conflict) for conflict in conflicts]
+        return len(conflicts) > 0
 
 
 class Feature(Component):
@@ -248,16 +254,17 @@ class Feature(Component):
         instruction.validate(self.glyphs, self.classes)  # Validate the instruction, this function raises the appropriate Exceptions
 
         for lookup in self.lookups:
-            if isinstance(instruction, lookup.instruction_type) and not lookup.is_conflicting(instruction):
-                lookup.add_instruction(instruction)
-                return
+            if isinstance(instruction, lookup.instruction_type):
+                if not lookup.is_conflicting(instruction):
+                    lookup.add_instruction(instruction)
+                    return
             
         # Create a new lookup
         self.counter += 1
 
         match type(instruction).__name__:
             case "SubInstruction":
-                new_name = self.name + "_" + SubLookup.__name__ + "_" + str(self.counter)
+                new_name = self.name + "_" + SubLookup.__name__.lower() + "_" + str(self.counter)
                 lookup = SubLookup(new_name, self.font, self.glyphs, self.classes)
                 lookup.add_instruction(instruction)
                 self.lookups.append(lookup)
@@ -307,6 +314,6 @@ class Feature(Component):
         compiled_string = f"feature {self.name}" + " {\n"
         compiled_string += f"\tscript DFLT;\n\tlanguage dflt;\n\tscript latn;\n\tlanguage dflt;\n\n"  # Add language string
         for lookup in self.lookups:
-            compiled_string += lookup.compile()
+            compiled_string += lookup.compile() + "\n\n"
         compiled_string += "} " + f"{self.name};\n"  # close the feature block
         return compiled_string
