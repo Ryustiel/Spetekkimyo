@@ -102,6 +102,7 @@ class GlyphIndex(GlyphManager):
         for glyph_name in missing_glyphs:
             glyph = self.font.createChar(-1, glyph_name) # CREATE missing glyphs as default glyphs to be used as intermediate steps in lookups
             glyph.importOutlines(os.path.join(self.glyphs_folder, self.default_glyph))
+            self.glyphs.update({glyph_name: glyph})
         if len(missing_glyphs) > 0:
             print(f"\nLoaded missing glyphs as DEFAULT GLYPH : {missing_glyphs}\n")
             # raise GlyphMissingError(missing_glyphs)
@@ -134,18 +135,18 @@ class GlyphIndex(GlyphManager):
             sets = json.load(f)
         return set_name in sets.keys()
     
-    def get_glyph_or_gset(self, input: str) -> List[str]:
+    def get_glyph_or_gset(self, inp: str) -> List[str]:
         """
         Returns the name of the glyph in a standard List, 
         or a gset if the input is the name of a gset.
         Raise an error if the name was neither part of the gsets or the loaded glyphs.
         """
-        if self.glyph_exists(input):
-            return [input]
-        elif self.gset_exists(input):
-            return self.gset(input)
+        if self.glyph_exists(inp):
+            return [inp]
+        elif self.gset_exists(inp):
+            return self.gset(inp)
         else:
-            raise KeyError(f"Neither a glyph nor a glyph set found for '{input}'.")
+            raise KeyError(f"Neither a glyph nor a glyph set found for '{inp}'.")
 
 
     def _check_sets(self) -> List[str]:
