@@ -26,7 +26,10 @@ font.fullname = "Example Font"
 font.familyname = "Example Font Family"
 font.encoding = "UnicodeFull"  # Use full Unicode encoding
 
-feature.REPLACE("a", "build a")
+# nealajabm osei tai sob
+feature.SUBSTITUTION([["#start", "o"]], "a", [], "e")
+
+# 'nealajabm o''s'ei ''t'ai ''s'o'''b
 ...
 
 install_feature(str(classes) + " \n" + str(feature), FEATURE_PATH, font, True)

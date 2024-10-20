@@ -44,6 +44,53 @@ class ClassIndex(Component):
         self.current_id = 0
         self.classes: Dict = {}
 
+    def _complement(self, glyphs: List[GLYPH]) -> List[GLYPH]:
+        """
+        Computes the complement of the glyph set.
+        """
+        complement = []
+        for glyph in self.index.glyphs.keys():
+            if glyph not in glyphs:
+                complement.append(glyph)
+        return complement
+    
+    def _handle_presets(self, class_name: str) -> bool:
+        """
+        Glyph presets are some specific class names that can be used right away in instructions.
+        They are only loaded as classes when used the first time.
+
+        Aditionally, returns True if the class_name was a supported preset, False if it was not.
+
+        Current presets are : 
+
+        - @any : any existing glyph
+        """
+        if class_name == "@any":
+            if not self.exists("@any"):
+                self.create_class(self.index.glyphs.keys(), "@any")
+        else:
+            return False
+        return True
+    
+    def _handle_settings(self, glyphs: List[GLYPH]) -> List[GLYPH]:
+        """
+        Modifies the glyph list according to the # elements that represent the class settings.
+
+        Current behavior : 
+        - "#none" is removed as it is intended to be treated outside of the class.
+        - Any other class setting is unknown and triggers and error.
+        """
+        result = []
+        for glyph in glyphs:
+            if glyph == "#example":
+                continue
+            elif glyph[0] == "#":
+                raise ValueError(f"Unknown class setting: {glyph} in {glyphs}. Also note that some settings like #none are not supposed end up here because they are managed at the Feature level.")
+            else:  # is a regular glyph
+                result.append(glyph)
+                
+        return result
+
     def create_class(self, glyphs: List[GLYPH], class_name: str = None) -> CLASS:
         if not class_name: class_name = f"@class{self.current_id}"
         elif class_name[0] != "@": class_name = "@" + class_name  # ensure the class name starts with a "@" character
@@ -57,6 +104,13 @@ class ClassIndex(Component):
             return (class_name if class_name[0] == '@' else '@' + class_name) in self.classes.keys()  # Checks if the class exists
         else:
             return any([glyphs == glyph_class for glyph_class in self.classes.values()])  # Checks if the glyph list exists
+        
+    def complement_exists(self, glyphs: List[GLYPH]):
+        """
+        Checks if the glyph set's complement already exists as a class.
+        """
+        complement = self._complement(glyphs) 
+        return any([complement == glyph_class for glyph_class in self.classes.values()])
     
     def get_class(self, glyphs: Union[CLASS, List[GLYPH]], new_class_name: str = None) -> CLASS:
         """
@@ -66,19 +120,30 @@ class ClassIndex(Component):
         - new_class_name: The name of the new class if it has to be created
         """
         if isinstance(glyphs, str): 
-            class_name = glyphs
-            if self.exists(class_name): 
-                return self.classes[class_name if class_name[0] == "@" else "@" + class_name]
+            class_name = glyphs if glyphs[0] == "@" else "@" + glyphs
+            if (
+                self.exists(class_name) or 
+                self._handle_presets(class_name)
+            ):
+                return self.classes[class_name]
             else: 
-                raise KeyError(f"Could not find class {class_name if class_name[0] == '@' else '@' + class_name}")
+                raise KeyError(f"Could not find class or preset : '{class_name}'")
 
-        for class_name, class_content in self.classes.items():
-            if glyphs == class_content: return class_name
+        elif isinstance(glyphs, list):
+            # Handles # characters
+            glyphs = self._handle_settings(glyphs)
 
-        # Create a new class
-        if new_class_name in self.classes.keys():  # Do not use the class_name to create the new class
-            new_class_name = None
-        return self.create_class(glyphs, new_class_name)
+            # Attempt to find an existing class
+            for class_name, class_content in self.classes.items():
+                if glyphs == class_content: return class_name
+
+            # Create a new class
+            if new_class_name in self.classes.keys():  # Do not use the class_name to create the new class
+                new_class_name = None
+            return self.create_class(glyphs, new_class_name)
+        
+        else:
+            raise TypeError("Input must be a glyph set or a class name")
     
     def compile(self) -> str:
         """
@@ -247,7 +312,7 @@ class SubLookup(Lookup):
 class Feature(Component):
     """
     Generate a feature item for the font.
-    Provide lookup instruction presets.
+    Provide lookup instruction settings.
     """
     lookups: List[Lookup] = []
     counter = 0
@@ -257,56 +322,6 @@ class Feature(Component):
         self.font = font
         self.glyphs = glyphs
         self.classes = classes
-
-    def extend_or_create_lookup(self, instruction: Instruction):
-        """
-        Find a lookup that is compatible with the given instruction
-        or create a new one if none is found.
-        """
-        instruction.validate(self.glyphs, self.classes)  # Validate the instruction, this function raises the appropriate Exceptions
-
-        for lookup in self.lookups:
-            if isinstance(instruction, lookup.instruction_type):
-                if not lookup.is_conflicting(instruction):
-                    lookup.add_instruction(instruction)
-                    return
-            
-        # Create a new lookup
-        self.counter += 1
-
-        match type(instruction).__name__:
-            case "SubInstruction":
-                new_name = self.name + "_" + SubLookup.__name__.lower() + "_" + str(self.counter)
-                lookup = SubLookup(new_name, self.font, self.glyphs, self.classes)
-                lookup.add_instruction(instruction)
-                self.lookups.append(lookup)
-            case _:
-                raise ValueError(f"Feature {self.name} can not contain {type(instruction).__name__} instructions.")
-
-    def SUBSTITUTION(self, backtrack: Union[List, SubInstruction], replacing: Union[List, str] = None, lookahead: List = None, replacement: Union[List, str] = None):
-        """
-        The default substitution implementation.
-        """
-        if isinstance(backtrack, SubInstruction):
-            instruction = backtrack
-        elif isinstance(backtrack, list):
-            instruction = SubInstruction(backtrack=backtrack, replacing=replacing, lookahead=lookahead, replacement=replacement)
-        self.extend_or_create_lookup(instruction)
-
-    def REPLACE(self, replacing: GLYPH, replacement: Union[List[GLYPH], GLYPH]):
-        self.SUBSTITUTION([], replacing, [], replacement)
-
-    def APPEND_LEFT(self,  backtrack: List[GLYPH], replacing: GLYPH, lookahead: List[GLYPH], left:  Union[GLYPH, SET, List[GLYPH]]):
-        if isinstance(left, str): left = self.glyphs.get_glyph_or_gset(left)  # Input can be gset name
-        left.insert(0, replacing)  # Recalculating replacement
-        self.SUBSTITUTION(backtrack, replacing, lookahead, left)
-
-    def SKIP(self, backtrack: List[GLYPH], replacing: GLYPH, lookahead: List[GLYPH]):
-        """
-        Skips the update of the glyph in that particular context at this point in the lookup.
-        """
-        self.REPLACE(backtrack, replacing, lookahead, replacing)  # <=> Replacing the glyph by itself 
-        # (because operations are limited to 1 per glyph per lookup, doing this disables any further operation)
 
     def compile(self):
         """
@@ -329,3 +344,131 @@ class Feature(Component):
             compiled_string += lookup.compile() + "\n\n"
         compiled_string += "} " + f"{self.name};\n"  # close the feature block
         return compiled_string
+
+    def _extend_or_create_lookup(self, instruction: Instruction):
+        """
+        Find a lookup that is compatible with the given instruction
+        or create a new one if none is found.
+        """
+        instruction.validate(self.glyphs, self.classes)  # Validate the instruction, this function raises the appropriate Exceptions
+
+        for lookup in self.lookups:
+            if isinstance(instruction, lookup.instruction_type):
+                if not lookup.is_conflicting(instruction):
+                    lookup.add_instruction(instruction)
+                    return
+            
+        # Create a new lookup
+        self.counter += 1
+
+        match type(instruction).__name__:
+            case "SubInstruction":
+                new_name = self.name + "_" + SubLookup.__name__.lower() + "_" + str(self.counter)
+
+                lookup = SubLookup(new_name, self.font, self.glyphs, self.classes)
+                lookup.add_instruction(instruction)
+                self.lookups.append(lookup)
+            case _:
+                raise ValueError(f"Feature {self.name} can not contain {type(instruction).__name__} instructions.")
+            
+    def _handle_settings(self, instruction: Instruction) -> bool:
+        """
+        Handle some settings values and create lookup tables accordingly.
+        Return True if the settings value triggered the creation of some tables within this function, 
+        False if nothing has been done.
+
+        Removes the setting item from the instruction once it has been handled.
+
+        Handles values :
+
+        - #start : 
+            => Should be placed in the first backtrack statement exclusively.
+            Example : [[a, #start], [a]], o, [[a]], replace by i
+            * Add the instruction without the #start statement : [[a], [a]], o, [[a]]
+            * Create a skip instruction for the instruction where any value does not match, (SKIP a [not matching] o' [any not matching])
+            * followed by the instruction with no value in place of the #none mark, 
+
+        - #end :
+            => Should be placed in the last lookahead statement exclusively.
+        """
+        if isinstance(instruction, SubInstruction):
+
+            # Managing #start and #end (to handle the "together" case)
+            has_start_flag = False
+            has_end_flag = False
+
+            if len(instruction.backtrack) > 0:
+                if isinstance(instruction.backtrack[0], str) and instruction.backtrack[0] == '#start':  # Convert to list for uniform treatment
+                    instruction.backtrack[0] = [instruction.backtrack[0]]
+
+                statement = instruction.backtrack[0]
+                if '#start' in statement:
+                    
+                    # Add the instructions for the #start case
+                    filtered_statement = []
+                    for glyph in statement: 
+                        if glyph != '#start': filtered_statement.append(glyph)
+                    instruction.backtrack[0] = filtered_statement
+                    has_start_flag = True
+
+            if len(instruction.lookahead) > 0:
+                if isinstance(instruction.lookahead[-1], str) and instruction.lookahead[-1] == '#end':  # Convert to list for uniform treatment
+                    instruction.lookahead[-1] = [instruction.lookahead[-1]]
+                
+                statement = instruction.lookahead[-1]
+                if '#end' in statement:
+
+                    filtered_statement = []
+                    for glyph in statement: 
+                        if glyph != '#end': filtered_statement.append(glyph)
+                    instruction.lookahead[-1] = filtered_statement
+                    has_end_flag = True
+
+            if has_start_flag and has_end_flag:  # Handle case #start + #end
+                # Add the instruction without the start and end statement
+                # Add the skip complement instruction
+                # Add the add any instruction.
+
+                # Add the cleaned up instruction lookup
+                self.SUBSTITUTION(instruction.backtrack, instruction.replacing, instruction.lookahead, instruction.replacement)
+
+            # TODO : Remove if else structure : all the instructions for combinations should be added
+            elif has_start_flag: # Handle case #end (and no start)
+                ...
+
+            elif has_end_flag:  # Handle case #start (and no end)
+                ...
+
+            # Case no #start no #end : Do nothing
+            return False # No change to the lookups
+
+
+    # Main Instruction parsing methods        
+
+    def SUBSTITUTION(self, backtrack: Union[List, SubInstruction], replacing: Union[List, str] = None, lookahead: List = None, replacement: Union[List, str] = None):
+        """
+        The default substitution implementation.
+        """
+        if isinstance(backtrack, SubInstruction):
+            instruction = backtrack
+        elif isinstance(backtrack, list):
+            instruction = SubInstruction(backtrack=backtrack, replacing=replacing, lookahead=lookahead, replacement=replacement)
+        self.extend_or_create_lookup(instruction)
+
+
+    # Action methods
+
+    def REPLACE(self, replacing: GLYPH, replacement: Union[List[GLYPH], GLYPH]):
+        self.SUBSTITUTION([], replacing, [], replacement)
+
+    def APPEND_LEFT(self,  backtrack: List[GLYPH], replacing: GLYPH, lookahead: List[GLYPH], left:  Union[GLYPH, SET, List[GLYPH]]):
+        if isinstance(left, str): left = self.glyphs.get_glyph_or_gset(left)  # Input can be gset name
+        left.insert(0, replacing)  # Recalculating replacement
+        self.SUBSTITUTION(backtrack, replacing, lookahead, left)
+
+    def SKIP(self, backtrack: List[GLYPH], replacing: GLYPH, lookahead: List[GLYPH]):
+        """
+        Skips the update of the glyph in that particular context at this point in the lookup.
+        """
+        self.REPLACE(backtrack, replacing, lookahead, replacing)  # <=> Replacing the glyph by itself 
+        # (because operations are limited to 1 per glyph per lookup, doing this disables any further operation)
