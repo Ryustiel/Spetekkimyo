@@ -1,17 +1,24 @@
+import os
+
 # CONSTANTS =================================================
 
-DEFAULT_GLYPH = "head/a.eps"
-FEATURE_PATH = "./spetekkimyo/generated/features.fea"
-GLYPH_FOLDER_PATH = "./spetekkimyo/glyphs/"
-SETS_PATH = "./spetekkimyo/sets.json"
-DEFAULT_OUTPUT_PATH = "./spetekkimyo/generated/seiso.otf"
+# Define the base directory for the `spetekkimyo` package dynamically
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Adjust paths to be relative to the `BASE_DIR`
+FEATURE_PATH = os.path.join(BASE_DIR, "generated/features.fea")
+GLYPH_FOLDER_PATH = os.path.join(BASE_DIR, "glyphs/")
+SETS_PATH = os.path.join(BASE_DIR, "sets.json")
+DEFAULT_OUTPUT_PATH = os.path.join(BASE_DIR, "generated/seiso.otf")
+
+# Other constants
+DEFAULT_GLYPH = "head/a.eps"  # This is the location of a glyph RELATIVE to the GLYPH_FOLDER
 
 # FUNCTIONS =================================================
 
 import fontforge
 from .index import GlyphIndex
 from .features import ClassIndex, Feature, install_feature
-
 from .config import generate_font
 
 # EXPORTS ===================================================

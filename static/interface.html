@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spetekkimyo Interface</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #f7fafc, #edf2f7);
+      color: #333;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+    header {
+      text-align: center;
+      padding: 10px 0;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      color: #2D3748;
+    }
+    section {
+      margin-bottom: 30px;
+    }
+    .fancy-box {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      padding: 15px;
+    }
+    .font-preview {
+      font-family: 'Seiso', sans-serif;
+    }
+    textarea,
+    input[type='text'] {
+      width: 100%;
+      border: 1px solid #CBD5E0;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 15px;
+      font-size: 1rem;
+    }
+    textarea:focus,
+    input[type='text']:focus {
+      outline: none;
+      box-shadow: 0 0 5px #4A90E2;
+      border-color: #4A90E2;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      background: #E2E8F0;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 5px;
+    }
+    button {
+      background: #3182CE;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #2B6CB0;
+    }
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 0.9rem;
+      color: #718096;
+    }
+    @font-face {
+      font-family: 'Seiso';
+      src: url("{{ font_path }}") format("truetype");
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Spetekkimyo Font Generator</h1>
+  </header>
+
+  <main>
+    <!-- Fancy Font Preview -->
+    <section class="fancy-box">
+      <h2>Type Your Custom Text</h2>
+      <input type="text" id="customText" oninput="updatePreview()" placeholder="Type something here...">
+      <div id="preview" class="font-preview fancy-box"></div>
+    </section>
+
+    <!-- Update Examples Section -->
+    <section class="fancy-box">
+      <h2>Update Examples</h2>
+      <form action="/update-examples" method="post">
+        <textarea name="text" placeholder="Enter new examples, one per line">{{ '\n'.join(examples) }}</textarea>
+        <button type="submit">Update Examples</button>
+      </form>
+    </section>
+
+    <!-- Generate Font Button -->
+    <section class="fancy-box">
+      <h2>Regenerate Font</h2>
+      <form action="/regenerate-font" method="post">
+        <button type="submit">Regenerate Font</button>
+      </form>
+    </section>
+
+    <!-- Examples Section -->
+    <section class="fancy-box">
+      <h2>Generated Text Examples</h2>
+      <ul>
+        {% for example in examples %}
+        <li>{{ example }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    &copy; 2024 Spetekkimyo | All Rights Reserved
+  </footer>
+
+  <script>
+    function updatePreview() {
+      const input = document.getElementById('customText');
+      const preview = document.getElementById('preview');
+      preview.textContent = input.value; // Show text in font preview zone
+    }
+  </script>
+</body>
+</html>

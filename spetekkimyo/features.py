@@ -248,10 +248,14 @@ class SubInstruction(Instruction):
                 lookahead: List[Union[GLYPH, SET, CLASS, List[GLYPH]]] = [],
                 replacement: Union[GLYPH, SET, List[GLYPH]] = "",
                 ):
+        
+        # Type hint show variable type after .validate() is run.
         self.backtrack: List[Union[CLASS, GLYPH]] = backtrack
         self.replacing: Union[CLASS, GLYPH] = replacing
         self.lookahead: List[Union[CLASS, GLYPH]] = lookahead
         self.replacement: List[GLYPH] = replacement
+
+        self.is_validated = False
 
     def validate(self, glyphs: GlyphIndex, classes: ClassIndex):
         """
@@ -262,15 +266,22 @@ class SubInstruction(Instruction):
         self.replacing = self.format_one(self.replacing, glyphs, classes)
         self.lookahead = [self.format_one(item, glyphs, classes) for item in self.lookahead]
         
+        # Converts self.replacement to a list of glyphs
         if isinstance(self.replacement, str):
             if self.replacement[0] == "@":
                 raise ValueError(f"The replacement glyph has a value of {self.replacement} which looks like a class name. This is likely an error. Only glyph lists can be used as replacements.")
             elif glyphs.gset_exists(self.replacement):
+                # FOUND GSET FOR self.replacement, importing the set itself
                 self.replacement = glyphs.gset(self.replacement)  # Loads the gset as a list of glyphs
             elif not glyphs.glyph_exists(self.replacement):  # Is neither a gset nor a glyph
                 raise ValueError(f"Replacement value '{self.replacement}' is neither a glyph nor a gset. It cannot be used in this instruction.")
+            else: 
+                # FOUND GLYPH IN EXISTING GLYPS, TURNING IT INTO A LIST
+                self.replacement = [self.replacement]
         elif any([not glyphs.glyph_exists(i) for i in self.replacement]): 
             raise ValueError(f"An instruction received {self.replacement} as a glyph list for a replacement glyph. Replacement glyphs in that list cannot be gsets names nor classes (unlike backtracks and lookaheads). Check for accidental @ or gset names in that glyph list.")
+        
+        self.is_validated = True
 
     def compile(self):
         """
@@ -278,6 +289,9 @@ class SubInstruction(Instruction):
         Example: 
             sub @trigger @trigger @target' @trigger by p;
         """
+        if not self.is_validated:
+            raise ValueError("SubInstruction has not been validated yet. Please run validate() method first.")
+        
         compiled_string = f"sub {' '.join(self.backtrack) + ' ' if self.backtrack else ''}{self.replacing}'{' ' + ' '.join(self.lookahead) if self.lookahead else ''} by {' '.join(self.replacement)};"
         return compiled_string
 

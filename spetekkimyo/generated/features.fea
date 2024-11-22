@@ -6,7 +6,7 @@ feature ccmp {
 	language dflt;
 
 	lookup ccmp_sublookup_1 {
-		sub f' by f 2;
+		sub f' by f2;
 		sub a' by Ha a;
 		sub e' by Ha e;
 		sub o' by Ho o;

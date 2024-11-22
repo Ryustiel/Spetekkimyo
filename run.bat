@@ -1,1 +1,1 @@
-.\libs\bin\ffpython.exe main.py
+.\ffpython\bin\ffpython.exe run.py
