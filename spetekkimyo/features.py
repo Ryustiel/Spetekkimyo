@@ -2,7 +2,7 @@
 Create an interface on fontforge to create lookup tables easily.
 """
 import fontforge
-from index import GlyphIndex
+from .index import GlyphIndex
 from typing import Union, List, Dict
 from abc import ABC, abstractmethod
 
