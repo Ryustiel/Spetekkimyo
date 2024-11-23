@@ -13,7 +13,7 @@ CLASS = str
 
 
 def install_feature(feature_string: str, feature_path: str, font: fontforge.font, debug=False):
-    if debug: print(f"RESULT : \n{feature_string}")
+    # if debug: print(f"RESULT : \n{feature_string}")
 
     try:
         with open(feature_path, "w") as f: f.write(feature_string)

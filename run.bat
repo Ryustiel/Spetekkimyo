@@ -1,1 +1,1 @@
-.\ffpython\bin\ffpython.exe run.py
+.\ffpython\bin\ffpython.exe spetekkimyo\run.py
