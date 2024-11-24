@@ -49,7 +49,7 @@ class ClassIndex(Component):
         Glyph presets are some specific class names that can be used right away in instructions.
         They are only loaded as classes when used the first time.
 
-        Aditionally, returns True if the class_name was a supported preset, False if it was not.
+        Additionally, returns True if the class_name was a supported preset, False if it was not.
 
         Current presets are : 
 
@@ -68,7 +68,7 @@ class ClassIndex(Component):
 
         Current behavior : 
         - "#none" is removed as it is intended to be treated outside of the class.
-        - Any other class setting is unknown and triggers and error.
+        - Any other class setting is unknown and triggers an error.
         """
         result = []
         for glyph in glyphs:
@@ -92,8 +92,10 @@ class ClassIndex(Component):
         return complement
 
     def create_class(self, glyphs: List[GLYPH], class_name: str = None) -> CLASS:
-        if not class_name: class_name = f"@class{self.current_id}"
-        elif class_name[0] != "@": class_name = "@" + class_name  # ensure the class name starts with a "@" character
+        if not class_name:
+            class_name = f"@class{self.current_id}"
+        elif class_name[0] != "@":
+            class_name = "@" + class_name  # ensure the class name starts with a "@" character
         self.classes[class_name] = glyphs
         self.current_id += 1
         return class_name
@@ -135,7 +137,8 @@ class ClassIndex(Component):
 
             # Attempt to find an existing class
             for class_name, class_content in self.classes.items():
-                if glyphs == class_content: return class_name
+                if glyphs == class_content:
+                    return class_name
 
             # Create a new class
             if new_class_name in self.classes.keys():  # Do not use the class_name to create the new class
@@ -279,7 +282,7 @@ class SubInstruction(Instruction):
                 # FOUND GLYPH IN EXISTING GLYPS, TURNING IT INTO A LIST
                 self.replacement = [self.replacement]
         elif any([not glyphs.glyph_exists(i) for i in self.replacement]): 
-            raise ValueError(f"An instruction received {self.replacement} as a glyph list for a replacement glyph. Replacement glyphs in that list cannot be gsets names nor classes (unlike backtracks and lookaheads). Check for accidental @ or gset names in that glyph list.")
+            raise ValueError(f"An instruction received {self.replacement} as a glyph list for a replacement glyph. Replacement glyphs in that list cannot be gset names nor classes (unlike backtracks and lookaheads). Check for accidental @ or gset names in that glyph list.")
         
         self.is_validated = True
 
@@ -327,7 +330,6 @@ class SubLookup(Lookup):
         if return_conflicts:
             return [str(conflict) for conflict in conflicts]
         return len(conflicts) > 0
-
 
 
 class Feature(Component):
@@ -468,3 +470,72 @@ class Feature(Component):
         """
         return self.SUBSTITUTION(backtrack, replacing, lookahead, replacing)  # <=> Replacing the glyph by itself 
         # (because operations are limited to 1 per glyph per lookup, doing this disables any further operation)
+
+    # New Method: apply_lookups
+
+    def apply_lookups(self, glyph_list: List[GLYPH], debug: bool = False, display: bool = True):
+        """
+        Applies lookup rules to the provided list of glyphs.
+        Optionally collects debug messages and controls display of messages.
+
+        :param glyph_list: List of glyph names to process.
+        :param debug: If True, collects debug messages and returns them along with the glyphs.
+        :param display: If True, prints debug messages during processing.
+        :return: If debug is False, returns the final glyph list.
+                If debug is True, returns a tuple of (final glyph list, debug messages string).
+        """
+        current_glyphs = glyph_list.copy()
+        message = f"Initial Glyph List: {current_glyphs}"
+        if display:
+            print(message)
+        if debug:
+            debug_messages = [message]
+        else:
+            debug_messages = []
+
+        for lookup in self.lookups:
+            message = f"\nApplying Lookup: {lookup.name}"
+            if display:
+                print(message)
+            if debug:
+                debug_messages.append(message)
+
+            new_glyphs = []
+            i = 0
+            while i < len(current_glyphs):
+                replaced = False
+                for instruction in lookup.instructions:
+                    # Assuming Substitution where replacing a single glyph
+                    if isinstance(instruction, SubInstruction):
+                        # Simple substitution: replace glyph if it matches
+                        if current_glyphs[i] == instruction.replacing:
+                            replacement_str = ', '.join(map(str, instruction.replacement))
+                            message = f"Substituted '{current_glyphs[i]}' with '{instruction.replacement}'"
+                            if display:
+                                print(message)
+                            if debug:
+                                debug_messages.append(message)
+                            new_glyphs.extend(instruction.replacement)
+                            replaced = True
+                            break
+                if not replaced:
+                    new_glyphs.append(current_glyphs[i])
+                i += 1
+            current_glyphs = new_glyphs
+            message = f"\n{' '.join(current_glyphs)}"
+            if display:
+                print(message)
+            if debug:
+                debug_messages.append(message)
+
+        # message = f"Final Glyph List:\n\n{' '.join(current_glyphs)}\n"
+        # if display:
+        #     print(message)
+        # if debug:
+        #     debug_messages.append(message)
+
+        if debug:
+            debug_output = "\n".join(debug_messages)
+            return current_glyphs, debug_output
+        else:
+            return current_glyphs

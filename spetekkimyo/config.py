@@ -7,7 +7,7 @@ CREATE FONT
 import fontforge
 from .index import GlyphIndex
 from .features import ClassIndex, Feature, install_feature
-from . import DEFAULT_GLYPH, FEATURE_PATH, DEFAULT_OUTPUT_PATH, SETS_PATH, GLYPH_FOLDER_PATH
+from . import DEFAULT_GLYPH, FEATURE_PATH, DEFAULT_OUTPUT_PATH, SETS_PATH, GLYPH_FOLDER_PATH, DEBUG_LOG_PATH, DEBUG_EXAMPLE
 
 def generate_font(output_path: str = DEFAULT_OUTPUT_PATH):
 
@@ -38,6 +38,10 @@ def generate_font(output_path: str = DEFAULT_OUTPUT_PATH):
 
     # 'nealajabm o''s'ei ''t'ai ''s'o'''b
     ...
+
+    _, message = feature.apply_lookups(glyph_list=DEBUG_EXAMPLE, display=False, debug=True)
+    with open(DEBUG_LOG_PATH, 'w') as f:
+        f.write(message)
 
     install_feature(f"{classes} \n{feature}", FEATURE_PATH, font, debug=True)
 
