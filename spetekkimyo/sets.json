@@ -2,10 +2,6 @@
     "build a": ["head.a", "tail.a"],
     "build o": ["head.o", "tail.o"],
 
-    "Ha glyphs": ["a", "e", "f"],
-    "Ho glyphs": ["o", "f2", "b2", "n"],
-
     "input glyphs : vowels": ["a", "e", "p", "o", "b", "u", "c", "i", "y"],
-    "input glyphs : conosnnants": ["k", "t", "s", "f", "n", "g", "d", "q", "h", "l", "j"],
-    "structure glyphs : height": ["Ha", "Ho", "Hb", "Ht", "Hd", "Hk"]
+    "input glyphs : conosnnants": ["k", "t", "s", "f", "n", "g", "d", "q", "h", "l", "j"]
 }

@@ -1,22 +1,12 @@
  
 feature ccmp {
 	script DFLT;
-	language dflt;
+	language dflt required;
 	script latn;
-	language dflt;
+	language dflt required;
 
 	lookup ccmp_sublookup_1 {
-		sub f' by f2;
-		sub a' by Ha a;
-		sub e' by Ha e;
-		sub o' by Ho o;
-		sub f2' by Ho f2;
-		sub b2' by Ho b2;
-		sub n' by Ho n;
+		sub t a' by head.t.a tail.a;
 	} ccmp_sublookup_1;
-
-	lookup ccmp_sublookup_2 {
-		sub f' by Ha f;
-	} ccmp_sublookup_2;
 
 } ccmp;

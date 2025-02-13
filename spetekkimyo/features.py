@@ -3,14 +3,13 @@ Create an interface on fontforge to create lookup tables easily.
 """
 import fontforge
 from .index import GlyphIndex
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Optional
 from abc import ABC, abstractmethod
 
 GLYPH = str
 SET = str
 LOOKUP = str
 CLASS = str
-
 
 def install_feature(feature_string: str, feature_path: str, font: fontforge.font, debug=False):
     # if debug: print(f"RESULT : \n{feature_string}")
@@ -21,7 +20,6 @@ def install_feature(feature_string: str, feature_path: str, font: fontforge.font
         print("Features successfully imported.")
     except Exception as e:
         print(f"An error occurred while importing features: {e}")
-
 
 class Component(ABC):
     """
@@ -130,7 +128,6 @@ class ClassIndex(Component):
                 return self.classes[class_name]
             else: 
                 raise KeyError(f"Could not find class or preset : '{class_name}'")
-
         elif isinstance(glyphs, list):
             # Handles # characters
             glyphs = self._handle_settings(glyphs)
@@ -164,7 +161,7 @@ class ClassIndex(Component):
 class Instruction(Component):
     """
     A lookup instruction.
-
+    
     /!\ The base Instruction class do not define its own compile method : Only its child classes do.
     """
     @abstractmethod
@@ -173,6 +170,11 @@ class Instruction(Component):
     @abstractmethod
     def compile(self) -> str:
         ...
+    @abstractmethod
+    def get_inverted(self) -> bool:
+        """Return the inverted flag of the instruction."""
+        ...
+
     def format_one(self, item: Union[GLYPH, SET, CLASS, List[GLYPH]], glyphs: GlyphIndex, classes: ClassIndex) -> Union[CLASS, GLYPH]:
         """
         Converts gset names to classes, glyph lists to classes, does NOT convert single glyphs to classes as it is not needed.
@@ -201,22 +203,25 @@ class Instruction(Component):
         else:
             raise ValueError(f"Expected a string (glyph, gset, class name) or a list of strings (glyph names) for item. Instead got {type(item)}")
 
-
 class Lookup(Component):
     instruction_type = None  # type of the instructions that the Lookup accepts
 
-    def __init__(self, name: str, font: fontforge.font, glyphs: GlyphIndex, classes: ClassIndex):
+    def __init__(self, name: str, font: fontforge.font, glyphs: GlyphIndex, classes: ClassIndex, inverted: bool = False):
         self.font = font
         self.glyphs = glyphs
         self.classes = classes
         self.name: str = name  # the name of the substitution table (both in fontforge and in the substitution manager system)
         self.instructions: List[Instruction] = []
+        self.inverted: bool = inverted  # [Change 1] Initialize inverted flag
 
     @abstractmethod
     def is_conflicting(self, instruction: Instruction):
         ...
 
     def add_instruction(self, instruction: Instruction, force=False):
+        # [Change 2] Ensure instruction's inverted flag matches lookup's inverted flag
+        if instruction.get_inverted() != self.inverted:
+            raise ValueError(f"Cannot add instruction with inverted={instruction.get_inverted()} to a lookup with inverted={self.inverted}.")
 
         if not isinstance(instruction, self.instruction_type):
             raise ValueError(f"Tried to add [{instruction.__class__.__name__}] but the lookup table only accepts {self.instruction_type.__name__} instructions.")
@@ -234,15 +239,18 @@ class Lookup(Component):
         Example: 
             lookup ccmp_lookup {
                 sub @trigger @trigger @target' @trigger by p;
-                sub @trigger @target' @trigger by i;
             } ccmp_lookup;
         """
         compiled_string = f"\tlookup {self.name}" + " {\n"
+
+        # [Change 3] Add lookupflags if inverted
+        if self.inverted:
+            compiled_string += "\t\tlookupflag RightToLeft;\n"  # RightToLeft flag
+
         for instruction in self.instructions:
             compiled_string += "\t\t" + instruction.compile() + "\n"
         compiled_string += "\t} " + self.name + ";"  # close the lookup block and the substitution table block
         return compiled_string
-
 
 class SubInstruction(Instruction):
     def __init__(self, 
@@ -250,15 +258,21 @@ class SubInstruction(Instruction):
                 replacing: Union[GLYPH, SET, CLASS, List[GLYPH]] = "",
                 lookahead: List[Union[GLYPH, SET, CLASS, List[GLYPH]]] = [],
                 replacement: Union[GLYPH, SET, List[GLYPH]] = "",
+                inverted: bool = False  # [Change 1] Add inverted attribute
                 ):
         
         # Type hint show variable type after .validate() is run.
         self.backtrack: List[Union[CLASS, GLYPH]] = backtrack
         self.replacing: Union[CLASS, GLYPH] = replacing
         self.lookahead: List[Union[CLASS, GLYPH]] = lookahead
-        self.replacement: List[GLYPH] = replacement
+        self.replacement: Union[List[GLYPH], GLYPH] = replacement
+
+        self.inverted: bool = inverted  # [Change 1] Store inverted flag
 
         self.is_validated = False
+
+    def get_inverted(self) -> bool:
+        return self.inverted
 
     def validate(self, glyphs: GlyphIndex, classes: ClassIndex):
         """
@@ -279,10 +293,11 @@ class SubInstruction(Instruction):
             elif not glyphs.glyph_exists(self.replacement):  # Is neither a gset nor a glyph
                 raise ValueError(f"Replacement value '{self.replacement}' is neither a glyph nor a gset. It cannot be used in this instruction.")
             else: 
-                # FOUND GLYPH IN EXISTING GLYPS, TURNING IT INTO A LIST
+                # FOUND GLYPH IN EXISTING GLYPHS, TURNING IT INTO A LIST
                 self.replacement = [self.replacement]
-        elif any([not glyphs.glyph_exists(i) for i in self.replacement]): 
-            raise ValueError(f"An instruction received {self.replacement} as a glyph list for a replacement glyph. Replacement glyphs in that list cannot be gset names nor classes (unlike backtracks and lookaheads). Check for accidental @ or gset names in that glyph list.")
+        elif isinstance(self.replacement, list):
+            if any([not glyphs.glyph_exists(i) for i in self.replacement]): 
+                raise ValueError(f"An instruction received {self.replacement} as a glyph list for a replacement glyph. Replacement glyphs in that list cannot be gset names nor classes (unlike backtracks and lookaheads). Check for accidental @ or gset names in that glyph list.")
         
         self.is_validated = True
 
@@ -295,15 +310,20 @@ class SubInstruction(Instruction):
         if not self.is_validated:
             raise ValueError("SubInstruction has not been validated yet. Please run validate() method first.")
         
+        # Handle inversion by placing the lookbehind (backtrack) and lookahead appropriately
         compiled_string = f"sub {' '.join(self.backtrack) + ' ' if self.backtrack else ''}{self.replacing}'{' ' + ' '.join(self.lookahead) if self.lookahead else ''} by {' '.join(self.replacement)};"
         return compiled_string
-
 
 class SubLookup(Lookup):
     """
     Metadata for a substitution table.
     """
     instruction_type = SubInstruction
+    instructions: List[SubInstruction]
+
+    def __init__(self, name: str, font: fontforge.font, glyphs: GlyphIndex, classes: ClassIndex, inverted: bool = False):
+        super().__init__(name, font, glyphs, classes, inverted)  # Pass inverted flag
+        # No additional changes needed here unless specific to SubLookup
 
     def is_conflicting(self, instruction: SubInstruction, return_conflicts: bool = False) -> bool:
         """
@@ -331,6 +351,83 @@ class SubLookup(Lookup):
             return [str(conflict) for conflict in conflicts]
         return len(conflicts) > 0
 
+class LigatureInstruction(Instruction):
+    def __init__(self, components: List[GLYPH], ligature_glyph: GLYPH, inverted: bool = False):
+        """
+        Initializes a ligature instruction.
+
+        :param components: A list of glyphs that form the ligature (e.g., ['f', 'i'])
+        :param ligature_glyph: The glyph that represents the ligature (e.g., 'fi')
+        :param inverted: Indicates if the instruction is right-to-left
+        """
+        self.components: List[GLYPH] = components
+        self.ligature_glyph: GLYPH = ligature_glyph
+
+        self.inverted: bool = inverted  # [Change 1] Store inverted flag
+
+        self.is_validated = False
+
+    def get_inverted(self) -> bool:
+        return self.inverted
+
+    def validate(self, glyphs: GlyphIndex, classes: ClassIndex):
+        """
+        Validates and prepares the ligature instruction.
+
+        - Ensures all component glyphs exist.
+        - Ensures the ligature glyph exists.
+        """
+        for glyph in self.components:
+            if not glyphs.glyph_exists(glyph):
+                raise ValueError(f"Component glyph '{glyph}' does not exist.")
+        if not glyphs.glyph_exists(self.ligature_glyph):
+            raise ValueError(f"Ligature glyph '{self.ligature_glyph}' does not exist.")
+        
+        self.is_validated = True
+
+    def compile(self):
+        """
+        Compiles the ligature instruction into a feature file string.
+
+        Example:
+            sub f i by fi;
+        """
+        if not self.is_validated:
+            raise ValueError("LigatureInstruction has not been validated yet. Please run validate() method first.")
+        
+        if self.inverted:
+            # For RTL, reverse the components
+            components = list(reversed(self.components))
+            compiled_string = f"sub {' '.join(components)} by {self.ligature_glyph};"
+        else:
+            compiled_string = f"sub {' '.join(self.components)} by {self.ligature_glyph};"
+        return compiled_string
+
+class LigatureLookup(Lookup):
+    """
+    Metadata for a ligature substitution table.
+    """
+    instruction_type = LigatureInstruction
+    instructions: List[LigatureInstruction]
+
+    def __init__(self, name: str, font: fontforge.font, glyphs: GlyphIndex, classes: ClassIndex, inverted: bool = False):
+        super().__init__(name, font, glyphs, classes, inverted)  # Pass inverted flag
+
+    def is_conflicting(self, instruction: LigatureInstruction, return_conflicts: bool = False) -> bool:
+        """
+        Determines if the ligature instruction conflicts with existing instructions.
+
+        Conflicts occur if:
+        - The sequence of components is identical to an existing ligature.
+        """
+        conflicts = []
+        for existing_instruction in self.instructions:
+            if existing_instruction.components == instruction.components:
+                conflicts.append(existing_instruction)
+
+        if return_conflicts:
+            return [str(conflict) for conflict in conflicts]
+        return len(conflicts) > 0
 
 class Feature(Component):
     """
@@ -345,13 +442,17 @@ class Feature(Component):
                 result.append(item)
         return result
 
-    def __init__(self, name: str, font: fontforge.font, glyphs: GlyphIndex, classes: ClassIndex):
+    def __init__(self, name: str, font: fontforge.font, glyphs: GlyphIndex, classes: ClassIndex, language: List[str] = ["dflt"], script: List[str] = ["latn"]):
         self.name: str = name
         self.font: fontforge.font = font
         self.glyphs: GlyphIndex = glyphs
         self.classes: ClassIndex = classes
         self.counter: int = 0
         self.lookups: List[Lookup] = []
+
+        assert len(language) == len(script) # They form a pair
+        self.language: str = language
+        self.script: str = script
 
     def compile(self):
         """
@@ -369,13 +470,15 @@ class Feature(Component):
             } ccmp;
         """
         compiled_string = f"feature {self.name}" + " {\n"
-        compiled_string += f"\tscript DFLT;\n\tlanguage dflt;\n\tscript latn;\n\tlanguage dflt;\n\n"  # Add language string
+        for language, script in zip(self.language, self.script):
+            compiled_string += f"\tscript {script};\n\tlanguage {language} required;\n"  # Add language string
+        compiled_string += "\n"
         for lookup in self.lookups:
             compiled_string += lookup.compile() + "\n\n"
         compiled_string += "} " + f"{self.name};\n"  # close the feature block
         return compiled_string
 
-    def _extend_or_create_lookup(self, instruction: Instruction) -> Lookup:
+    def _extend_or_create_lookup(self, instruction: Instruction, inverted: bool = False) -> Lookup:
         """
         Find a lookup that is compatible with the given instruction
         or create a new one if none is found.
@@ -385,7 +488,7 @@ class Feature(Component):
         instruction.validate(self.glyphs, self.classes)  # Validate the instruction, this function raises the appropriate Exceptions if needed.
 
         for lookup in self.lookups:
-            if isinstance(instruction, lookup.instruction_type):
+            if isinstance(instruction, lookup.instruction_type) and lookup.inverted == inverted:
                 if not lookup.is_conflicting(instruction):
                     lookup.add_instruction(instruction)
                     return lookup
@@ -395,19 +498,31 @@ class Feature(Component):
 
         match type(instruction).__name__:
             case "SubInstruction":
-                new_name = self.name + "_" + SubLookup.__name__.lower() + "_" + str(self.counter)
+                new_name = f"{self.name}_sublookup_{self.counter}"
 
-                lookup = SubLookup(new_name, self.font, self.glyphs, self.classes)
+                lookup = SubLookup(new_name, self.font, self.glyphs, self.classes, inverted=inverted)
+                lookup.add_instruction(instruction)
+                self.lookups.append(lookup)
+                return lookup
+            case "LigatureInstruction":
+                new_name = f"{self.name}_ligaturelookup_{self.counter}"
+
+                lookup = LigatureLookup(new_name, self.font, self.glyphs, self.classes, inverted=inverted)
                 lookup.add_instruction(instruction)
                 self.lookups.append(lookup)
                 return lookup
             case _:
                 raise ValueError(f"Feature {self.name} can not contain {type(instruction).__name__} instructions.")
 
-
     # Main Instruction parsing methods        
 
-    def SUBSTITUTION(self, backtrack: Union[List, SubInstruction], replacing: Union[List, str] = None, lookahead: List = None, replacement: Union[List, str] = None) -> Lookup:
+    def SUBSTITUTION(self, 
+                     backtrack: Union[List, SubInstruction], 
+                     replacing: Union[List, str] = None, 
+                     lookahead: List = None, 
+                     replacement: Union[List, str] = None,
+                     inverted: bool = False  # [Optional parameter to set inversion]
+                     ) -> Lookup:
         """
         The default substitution implementation.
 
@@ -417,58 +532,85 @@ class Feature(Component):
         # Convert to an Instruction object for uniform treatment
         if isinstance(backtrack, SubInstruction):
             instruction = backtrack
+            instruction.inverted = inverted  # Ensure the instruction's inverted flag is set
         elif isinstance(backtrack, list):
-            instruction = SubInstruction(backtrack=backtrack, replacing=replacing, lookahead=lookahead, replacement=replacement)
+            instruction = SubInstruction(backtrack=backtrack, replacing=replacing, lookahead=lookahead, replacement=replacement, inverted=inverted)
 
         # Convert backtrack to list for uniform treatment
         if len(instruction.backtrack) > 0 and isinstance(instruction.backtrack[0], str) and instruction.backtrack[0] == '#start':
             instruction.backtrack[0] = [instruction.backtrack[0]]
 
-        # Add the instructions for the #start case
-        if len(instruction.backtrack) > 0  and '#start' in instruction.backtrack[0]:
-            instruction.backtrack[0] = Feature._filter_out(instruction.backtrack[0], '#start')
-
+            # Add the instructions for the #start case
             if len(instruction.backtrack) > 0:
-                self.SUBSTITUTION(instruction.backtrack, instruction.replacing, instruction.lookahead, instruction.replacement)  # Manages the regular cases if there are any
+                self.SUBSTITUTION(instruction.backtrack, instruction.replacing, instruction.lookahead, instruction.replacement, inverted=inverted)  # Manages the regular cases if there are any
                 complement = self.classes.complement(instruction.backtrack[0])
             else:
                 complement = ["@all"]
             skip_backtrack = instruction.backtrack.copy() 
             skip_backtrack[0] = complement
             
-            skip_lookup = self.SKIP(skip_backtrack, instruction.replacing, instruction.lookahead)  # Skips any letter that does not fit the pattern (= complement of the 1st statement of the backtrack)
+            skip_lookup = self.SKIP(skip_backtrack, instruction.replacing, instruction.lookahead, inverted=inverted)  # Skips any letter that does not fit the pattern (= complement of the 1st statement of the backtrack)
             substitution = SubInstruction(
                 backtrack = instruction.backtrack[1:] if len(instruction.backtrack) >= 2 else [], 
                 replacing = instruction.replacing,
                 lookahead = instruction.lookahead,
-                replacement = instruction.replacement  # The replacement remains the same as the original instruction, but the first backtrack statement is ignored (because the complement options have been skipped already)
+                replacement = instruction.replacement,  # The replacement remains the same as the original instruction, but the first backtrack statement is ignored (because the complement options have been skipped already)
+                inverted = inverted  # Pass the inverted flag
             )
             substitution.validate(self.glyphs, self.classes)
             skip_lookup.add_instruction(substitution, force=True)
         # Otherwise process as usual
         else:
-            return self._extend_or_create_lookup(instruction)
+            return self._extend_or_create_lookup(instruction, inverted=inverted)
 
+    # New Method for Ligatures
+
+    def LIGATURE(self, components: List[GLYPH], ligature_glyph: GLYPH, inverted: bool = False) -> Lookup:
+        """
+        Adds a ligature substitution to the feature.
+
+        :param components: A list of glyphs that form the ligature (e.g., ['f', 'i']).
+        :param ligature_glyph: The glyph that represents the ligature (e.g., 'fi').
+        :param inverted: Indicates if the ligature is to be processed RTL.
+        :return: The lookup containing the ligature substitution.
+        """
+        if not isinstance(components, list) or not all(isinstance(g, str) for g in components):
+            raise TypeError("Components must be a list of glyph names as strings.")
+        if not isinstance(ligature_glyph, str):
+            raise TypeError("Ligature glyph must be a string.")
+
+        ligature_instruction = LigatureInstruction(components=components, ligature_glyph=ligature_glyph, inverted=inverted)
+        return self._extend_or_create_lookup(ligature_instruction, inverted=inverted)
 
     # Action methods
 
-    def REPLACE(self, replacing: GLYPH, replacement: Union[List[GLYPH], GLYPH]) -> Lookup:
-        return self.SUBSTITUTION([], replacing, [], replacement)
+    def REPLACE(self, replacing: GLYPH, replacement: Union[List[GLYPH], GLYPH], inverted: bool = False) -> Lookup:
+        return self.SUBSTITUTION([], replacing, [], replacement, inverted=inverted)
 
-    def APPEND_LEFT(self,  backtrack: List[GLYPH], replacing: GLYPH, lookahead: List[GLYPH], left:  Union[GLYPH, SET, List[GLYPH]]) -> Lookup:
+    def APPEND_LEFT(self,  
+                    backtrack: List[GLYPH], 
+                    replacing: GLYPH, 
+                    lookahead: List[GLYPH], 
+                    left:  Union[GLYPH, SET, List[GLYPH]]
+                    ) -> Lookup:
+        """
+        APPEND_LEFT action creates a substitution where the 'left' glyph(s) are prepended to the 'replacing' glyph.
+        This is intended to be processed RTL, hence it creates instructions with inverted=True.
+        """
         replacing = self.glyphs.get_glyph_or_gset(replacing)  # Preloading replacement glyphs
         if isinstance(left, str): left = self.glyphs.get_glyph_or_gset(left)  # Input can be gset name
 
         for glyph in replacing:
             replacement = left.copy()
             replacement.append(glyph)  # Recalculating replacement
-            self.SUBSTITUTION(backtrack, glyph, lookahead, replacement)
+            # Create substitution with inverted=True
+            self.SUBSTITUTION(backtrack, glyph, lookahead, replacement, inverted=True)
 
-    def SKIP(self, backtrack: List[GLYPH], replacing: GLYPH, lookahead: List[GLYPH]) -> Lookup:
+    def SKIP(self, backtrack: List[GLYPH], replacing: GLYPH, lookahead: List[GLYPH], inverted: bool = False) -> Lookup:
         """
         Skips the update of the glyph in that particular context at this point in the lookup.
         """
-        return self.SUBSTITUTION(backtrack, replacing, lookahead, replacing)  # <=> Replacing the glyph by itself 
+        return self.SUBSTITUTION(backtrack, replacing, lookahead, replacing, inverted=inverted)  # <=> Replacing the glyph by itself 
         # (because operations are limited to 1 per glyph per lookup, doing this disables any further operation)
 
     # New Method: apply_lookups
@@ -500,39 +642,55 @@ class Feature(Component):
             if debug:
                 debug_messages.append(message)
 
-            new_glyphs = []
-            i = 0
-            while i < len(current_glyphs):
-                replaced = False
+            if isinstance(lookup, SubLookup):
+                new_glyphs = []
+                i = 0
+                while i < len(current_glyphs):
+                    replaced = False
+                    for instruction in lookup.instructions:
+                        # Assuming Substitution where replacing a single glyph
+                        if isinstance(instruction, SubInstruction):
+                            # Simple substitution: replace glyph if it matches
+                            if current_glyphs[i] == instruction.replacing:
+                                replacement_str = ', '.join(map(str, instruction.replacement))
+                                message = f"Substituted '{current_glyphs[i]}' with '{instruction.replacement}'"
+                                if display:
+                                    print(message)
+                                if debug:
+                                    debug_messages.append(message)
+                                new_glyphs.extend(instruction.replacement)
+                                replaced = True
+                                break
+                    if not replaced:
+                        new_glyphs.append(current_glyphs[i])
+                    i += 1
+                current_glyphs = new_glyphs
+
+            elif isinstance(lookup, LigatureLookup):
                 for instruction in lookup.instructions:
-                    # Assuming Substitution where replacing a single glyph
-                    if isinstance(instruction, SubInstruction):
-                        # Simple substitution: replace glyph if it matches
-                        if current_glyphs[i] == instruction.replacing:
-                            replacement_str = ', '.join(map(str, instruction.replacement))
-                            message = f"Substituted '{current_glyphs[i]}' with '{instruction.replacement}'"
-                            if display:
-                                print(message)
-                            if debug:
-                                debug_messages.append(message)
-                            new_glyphs.extend(instruction.replacement)
-                            replaced = True
-                            break
-                if not replaced:
-                    new_glyphs.append(current_glyphs[i])
-                i += 1
-            current_glyphs = new_glyphs
+                    components = instruction.components
+                    replacement = instruction.ligature_glyph
+
+                    # Make it into a string
+                    components_str = ';'.join(components)
+                    current_glyphs_str = ';'.join(current_glyphs)
+                    
+                    # Use python string operations to replace the components
+                    # Handle inversion if needed
+                    if instruction.inverted:
+                        components_str = ';'.join(reversed(components))
+                    
+                    new_glyphs_str = current_glyphs_str.replace(components_str, replacement)
+                    if instruction.inverted:
+                        new_glyphs_str = new_glyphs_str.replace(components_str, replacement)
+                    new_glyphs = new_glyphs_str.split(';')
+                    current_glyphs = [g for g in new_glyphs if g]
+
             message = f"\n{' '.join(current_glyphs)}"
             if display:
                 print(message)
             if debug:
                 debug_messages.append(message)
-
-        # message = f"Final Glyph List:\n\n{' '.join(current_glyphs)}\n"
-        # if display:
-        #     print(message)
-        # if debug:
-        #     debug_messages.append(message)
 
         if debug:
             debug_output = "\n".join(debug_messages)

@@ -19,27 +19,24 @@ def generate_font(output_path: str = DEFAULT_OUTPUT_PATH):
     
     # FEATURES
 
-    feature = Feature("ccmp", font, glyphs, classes)
+    feature = Feature("ccmp", font, glyphs, classes, language=["dflt", "dflt"], script=["DFLT", "latn"])
 
     # FONT METADATA
 
     font.fontname = "Seiso"
     font.fullname = "spe seiso tekkimyo"
     font.familyname = "Seiso"
-    font.encoding = "UnicodeFull"  # Use full Unicode encoding
+    font.encoding = "UnicodeFull"  # Use full Unicode encodingdisc
 
     # DEFINE LOOKUPS
 
-    feature.REPLACE("f", "f2")  # TODO : Fix replacement value treated as a list (string indexes 1, 2 separated : check the output)
-
-    # nealajabm osei tai sob
-    feature.APPEND_LEFT([], "Ha glyphs", [], "Ha")
-    feature.APPEND_LEFT([], "Ho glyphs", [], "Ho")
+    # Step 1 : Preprocess height glyphs
+    feature.SUBSTITUTION(["t"], "a", [], ["head.t.a", "tail.a"])
 
     # 'nealajabm o''s'ei ''t'ai ''s'o'''b
     ...
 
-    _, message = feature.apply_lookups(glyph_list=DEBUG_EXAMPLE, display=False, debug=True)
+    _, message = feature.apply_lookups(glyph_list="t a i s t a i".split(), display=False, debug=True)
     with open(DEBUG_LOG_PATH, 'w') as f:
         f.write(message)
 

@@ -1,11 +1,7 @@
-Initial Glyph List: ['s', 'p', 'e', 't', 'e', 'k']
+Initial Glyph List: ['t', 'a', 'i', 's', 't', 'a', 'i']
 
 Applying Lookup: ccmp_sublookup_1
-Substituted 'e' with '['Ha', 'e']'
-Substituted 'e' with '['Ha', 'e']'
+Substituted 'a' with '['head.t.a', 'tail.a']'
+Substituted 'a' with '['head.t.a', 'tail.a']'
 
-s p Ha e t Ha e k
-
-Applying Lookup: ccmp_sublookup_2
-
-s p Ha e t Ha e k
+t head.t.a tail.a i s t head.t.a tail.a i
