@@ -1,7 +1,0 @@
-Initial Glyph List: ['t', 'a', 'i', 's', 't', 'a', 'i']
-
-Applying Lookup: ccmp_sublookup_1
-Substituted 'a' with '['head.t.a', 'tail.a']'
-Substituted 'a' with '['head.t.a', 'tail.a']'
-
-t head.t.a tail.a i s t head.t.a tail.a i

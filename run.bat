@@ -1,1 +1,0 @@
-.\ffpython\bin\ffpython.exe spetekkimyo\run.py
