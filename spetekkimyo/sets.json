@@ -1,7 +1,0 @@
-{
-    "build a": ["head.a", "tail.a"],
-    "build o": ["head.o", "tail.o"],
-
-    "input glyphs : vowels": ["a", "e", "p", "o", "b", "u", "c", "i", "y"],
-    "input glyphs : conosnnants": ["k", "t", "s", "f", "n", "g", "d", "q", "h", "l", "j"]
-}
