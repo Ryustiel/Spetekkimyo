@@ -1,12 +1,14 @@
- 
+
 feature ccmp {
 	script DFLT;
 	language dflt required;
 	script latn;
 	language dflt required;
 
+	@target = [ c b ];
+
 	lookup ccmp_sublookup_1 {
-		sub t a' by head.t.a tail.a;
+		sub @target by p;
 	} ccmp_sublookup_1;
 
 } ccmp;

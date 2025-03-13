@@ -1,16 +1,16 @@
 
 import os
 import sys
-import fontforge
 from typing import List # type: ignore
 from pathlib import Path # type: ignore
+import fontforge
 
 if len(sys.argv) <= 1: raise ValueError("Missing output_dir argument")
 
 root_dir = Path(__file__).parent.resolve()
 feature_path = root_dir / 'input' / 'features.fea'
 glyph_dir = root_dir / 'input' / 'glyphs'
-output_path = root_dir / Path(sys.argv[1])
+output_path = root_dir / Path(sys.argv[1]) if sys.argv[1][1] == ":" else Path(sys.argv[1])
 
 font = fontforge.font()
 
@@ -34,9 +34,9 @@ for entry in os.listdir(glyph_dir):
 
 print("Imported", len(imported), "glyphs:", " ".join(imported))
 
-# font.mergeFeature(str(feature_path))
-print("Imported features :)")
+font.mergeFeature(str(feature_path))
+print("Imported features")
 
-# font.generate(str(output_path))
+font.generate(str(output_path))
 
 print("Font generated at", output_path)
