@@ -1,16 +1,90 @@
 
-
 feature ccmp {
-	script DFLT;
-	language dflt required;
-	script latn;
-	language dflt required;
+    script DFLT;
+    language dflt required;
+    script latn;
+    language dflt required;
 
-	@target = [ c b ];
+    lookup build_vowels {
+        sub a by a_ _a;
+        sub o by o_ _o;
+        sub e by a_ _e;
+        sub p by a_ _p;
+    } build_vowels;
 
-	lookup ccmp_sublookup_1 {
-		sub @target by p;
-	} ccmp_sublookup_1;
+    lookup vowel_by_vowel {
+        sub _a' o_' by _ao_;
+        sub _o' a_' by _oa_;
+    } vowel_by_vowel;
 
+    lookup collapse_vowel_heads {
+        sub [_oa_]' a_' by [_oa_];
+        sub [_ao_]' o_' by [_ao_];
+    } collapse_vowel_heads;
+
+    lookup consonnant_by_vowel {
+        sub s' [a_ o_] by s_;
+        sub f' [a_] by af;
+        sub f' [o_] by of;
+        sub k' [a_] by ka_;
+    } consonnant_by_vowel;
+
+    lookup consonnant_by_preceding_vowel {
+        sub [_a _p] f' by af;
+        sub [_o _e] f' by of;
+    } consonnant_by_preceding_vowel ;
+
+    lookup vowel_by_consonnant {
+        sub [s_] a_' by _sa_;
+        sub s_ o_' by _so_ o_;
+
+        sub [n of] [a_]' by _ofa_ [a_];  # ofa marker
+
+        sub _a' [n of] by _a _ofa_;  # mwm
+        sub _p' [n of] by _p _ofa_;
+        sub _e' [n of] by _en_;
+
+        sub [n af] [o_]' by _afo_ [o_];  # afo marker
+        sub [_o]' [n af] by [_o] _afo_;
+
+    } vowel_by_consonnant;
+
+    lookup collapse_consonnants {
+        sub k s by ks;
+        sub k s_ by ks_;
+        sub t a_ by ta_;
+    } collapse_consonnants;
+
+    lookup consonnant_codas {
+        sub [_a n af] s' by _as;
+        sub [_o of] s' by _os;
+    } consonnant_codas;
+
+    lookup vowel_by_consonnant_codas {
+        sub _o' _os by _os_;
+    } vowel_by_consonnant_codas;
 } ccmp;
 
+feature kern {
+    script DFLT;
+    language dflt;
+    script latn;
+    language dflt;
+
+    pos [_a _o] [a_ o_] -80;  # VOYELLE A DROITE
+
+    pos [_so_] [o_] -80;  # S A GAUCHE
+    pos [s_ ks_] [_sa_ _so_] -80;
+
+    pos [_a _o n of af _os_] [_as _os] -80;  # S A DROITE
+
+    # horizontal consonnants
+    pos [_a _o _p] [_ofa_ _afo_] -320;  # N A DROITE
+    pos [_ofa_ _afo_] [af of n] -70;
+    pos [_a _o _p] [af of n] -70;
+
+    pos [_ofa_ _afo_] [a_ o_] -320;  # N A GAUCHE
+    pos [af of n] [_ofa_ _afo_] -70;
+    pos [af of n] [a_ o_] -70;
+
+} kern;
