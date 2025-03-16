@@ -5,11 +5,20 @@ feature ccmp {
     script latn;
     language dflt required;
 
+    lookup directional_letters {
+        # Some letters have a completely different form depending on the surrounding letters
+        sub [o n f] b' by ob;
+        sub b' by ab;
+    } directional_letters;
+
     lookup build_vowels {
         sub a by a_ _a;
         sub o by o_ _o;
         sub e by a_ _e;
         sub p by a_ _p;
+        sub y by o_ _y;
+        sub ob by o_ _b;
+        sub ab by b_ _o;
     } build_vowels;
 
     lookup vowel_by_vowel {
@@ -27,6 +36,7 @@ feature ccmp {
         sub f' [a_] by af;
         sub f' [o_] by of;
         sub k' [a_] by ka_;
+        sub k' [o_] by ko_;
     } consonnant_by_vowel;
 
     lookup consonnant_by_preceding_vowel {
@@ -42,7 +52,7 @@ feature ccmp {
 
         sub _a' [n of] by _a _ofa_;  # mwm
         sub _p' [n of] by _p _ofa_;
-        sub _e' [n of] by _en_;
+        sub _e' [n of s] by _en_;
 
         sub [n af] [o_]' by _afo_ [o_];  # afo marker
         sub [_o]' [n af] by [_o] _afo_;
@@ -52,12 +62,15 @@ feature ccmp {
     lookup collapse_consonnants {
         sub k s by ks;
         sub k s_ by ks_;
+        sub t s_ by ts_;
         sub t a_ by ta_;
+        sub t o_ by to_;
+        sub t b_ by tb_;
     } collapse_consonnants;
 
     lookup consonnant_codas {
         sub [_a n af] s' by _as;
-        sub [_o of] s' by _os;
+        sub [_o of _en_] s' by _os;
     } consonnant_codas;
 
     lookup vowel_by_consonnant_codas {
@@ -76,7 +89,7 @@ feature kern {
     pos [_so_] [o_] -80;  # S A GAUCHE
     pos [s_ ks_] [_sa_ _so_] -80;
 
-    pos [_a _o n of af _os_] [_as _os] -80;  # S A DROITE
+    pos [_a _o n of af _os_ _en_] [_as _os] -80;  # S A DROITE
 
     # horizontal consonnants
     pos [_a _o _p] [_ofa_ _afo_] -320;  # N A DROITE

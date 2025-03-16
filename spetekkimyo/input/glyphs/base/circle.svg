@@ -1,0 +1,15 @@
+<svg width="500" height="500" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <path
+    d="
+      M200,0
+      a200,200 0 1,0 0,400
+      a200,200 0 1,0 0,-400
+      
+      M200,80
+      a120,120 0 1,1 0,240
+      a120,120 0 1,1 0,-240
+    "
+    fill="black"
+    fill-rule="evenodd"
+  />
+</svg>

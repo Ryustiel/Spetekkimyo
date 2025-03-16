@@ -2,7 +2,7 @@
  "cells": [
   {
    "cell_type": "code",
-   "execution_count": 865,
+   "execution_count": 442,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -18,24 +18,20 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 866,
+   "execution_count": 443,
    "metadata": {},
    "outputs": [],
    "source": [
     "padding = {\n",
     "    \"ks_\": -100,\n",
-    "    \"ts_\": -380,\n",
     "    \"ka_\": -280,\n",
-    "    \"ko_\": -390,\n",
     "    \"ta_\": -250,\n",
-    "    \"to_\": -250,\n",
-    "    \"tb_\": -250,\n",
     "}"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 867,
+   "execution_count": 444,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -46,20 +42,12 @@
     "    script latn;\n",
     "    language dflt required;\n",
     "            \n",
-    "    lookup directional_letters {\n",
-    "        # Some letters have a completely different form depending on the surrounding letters\n",
-    "        sub [o n f] b' by ob;\n",
-    "        sub b' by ab;\n",
-    "    } directional_letters;\n",
-    "\n",
     "    lookup build_vowels {\n",
     "        sub a by a_ _a;\n",
     "        sub o by o_ _o;\n",
     "        sub e by a_ _e;\n",
     "        sub p by a_ _p;\n",
-    "        sub y by o_ _y;\n",
-    "        sub ob by o_ _b;\n",
-    "        sub ab by b_ _o;\n",
+    "        \n",
     "    } build_vowels;\n",
     "\n",
     "    lookup vowel_by_vowel {\n",
@@ -77,7 +65,6 @@
     "        sub f' [a_] by af;\n",
     "        sub f' [o_] by of;\n",
     "        sub k' [a_] by ka_;\n",
-    "        sub k' [o_] by ko_;\n",
     "    } consonnant_by_vowel;\n",
     "\n",
     "    lookup consonnant_by_preceding_vowel {\n",
@@ -93,7 +80,7 @@
     "\n",
     "        sub _a' [n of] by _a _ofa_;  # mwm\n",
     "        sub _p' [n of] by _p _ofa_;\n",
-    "        sub _e' [n of s] by _en_;\n",
+    "        sub _e' [n of] by _en_;\n",
     "\n",
     "        sub [n af] [o_]' by _afo_ [o_];  # afo marker\n",
     "        sub [_o]' [n af] by [_o] _afo_;\n",
@@ -103,15 +90,12 @@
     "    lookup collapse_consonnants {\n",
     "        sub k s by ks;\n",
     "        sub k s_ by ks_;\n",
-    "        sub t s_ by ts_;\n",
     "        sub t a_ by ta_;\n",
-    "        sub t o_ by to_;\n",
-    "        sub t b_ by tb_;\n",
     "    } collapse_consonnants;\n",
     "\n",
     "    lookup consonnant_codas {\n",
     "        sub [_a n af] s' by _as;\n",
-    "        sub [_o of _en_] s' by _os;\n",
+    "        sub [_o of] s' by _os;\n",
     "    } consonnant_codas;\n",
     "\n",
     "    lookup vowel_by_consonnant_codas {\n",
@@ -123,7 +107,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 868,
+   "execution_count": 445,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -139,7 +123,7 @@
     "    pos [_so_] [o_] -80;  # S A GAUCHE\n",
     "    pos [s_ ks_] [_sa_ _so_] -80;\n",
     "\n",
-    "    pos [_a _o n of af _os_ _en_] [_as _os] -80;  # S A DROITE\n",
+    "    pos [_a _o n of af _os_] [_as _os] -80;  # S A DROITE\n",
     "\n",
     "    # horizontal consonnants\n",
     "    pos [_a _o _p] [_ofa_ _afo_] -320;  # N A DROITE\n",
@@ -156,14 +140,14 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 869,
+   "execution_count": 446,
    "metadata": {},
    "outputs": [
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Imported 54 glyphs: a ab af a_ b b_ c e f i k ka_ ko_ ks ks_ n o ob of o_ p s s_ t ta_ tb_ tc tka_ tko_ tks_ to_ ts_ u uni008D_Seiso y _a _afo_ _ao_ _as _b _bn_ _e _en_ _fc _o _oa_ _ofa_ _os _os_ _p _sa_ _sc _so_ _y\n",
+      "Imported 37 glyphs: a af a_ b c e f i k ka_ ks ks_ n o of o_ p s s_ t ta_ u y _a _afo_ _ao_ _as _e _en_ _o _oa_ _ofa_ _os _os_ _p _sa_ _so_\n",
       "Imported features\n",
       "Font generated at d:\\Github\\spetekkimyo\\output\\test.otf\n"
      ]
@@ -182,30 +166,30 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 870,
+   "execution_count": 447,
    "metadata": {},
    "outputs": [],
    "source": [
     "e = \"\"\"\n",
-    "<span class=\"ss\">tsa tsp tse tso tsy</span>\n",
+    "<span class=\"ss\">npn c s</span>\n",
     "pb\n",
-    "<span class=\"ss\">ksa tp</span>\n",
+    "<span class=\"ss\">ka tp</span>\n",
     "\"\"\""
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 871,
+   "execution_count": 448,
    "metadata": {},
    "outputs": [
     {
      "data": {
       "text/html": [
-       "<style>p {font-size: 30px;} @font-face {src:url('./output/test.otf?version=121');font-family:'test';} .ss {font-family:'test';}</style>\n",
+       "<style>p {font-size: 120px;} @font-face {src:url('./output/test.otf?version=63');font-family:'test';} .ss {font-family:'test';}</style>\n",
        "<p>\n",
-       "<span class=\"ss\">tsa tsp tse tso tsy</span>\n",
+       "<span class=\"ss\">npn c s</span>\n",
        "pb\n",
-       "<span class=\"ss\">ksa tp</span>\n",
+       "<span class=\"ss\">ka tp</span>\n",
        "</p>"
       ],
       "text/plain": [
@@ -217,7 +201,7 @@
     }
    ],
    "source": [
-    "html = \"\"\"<style>p {font-size: 30px;} @font-face {src:url('./output/test.otf?version=%s');font-family:'test';} .ss {font-family:'test';}</style>\n",
+    "html = \"\"\"<style>p {font-size: 120px;} @font-face {src:url('./output/test.otf?version=%s');font-family:'test';} .ss {font-family:'test';}</style>\n",
     "<p>%s</p>\"\"\" % (counter, e)\n",
     "display(HTML(html))"
    ]
