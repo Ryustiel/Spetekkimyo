@@ -7,8 +7,12 @@ feature ccmp {
 
     lookup directional_letters {
         # Some letters have a completely different form depending on the surrounding letters
-        sub [o n f] b' by ob;
-        sub b' by ab;
+        sub [o n f] b' by __ob;
+        sub [s k] b' by __sb;
+        sub b' by __ab;
+
+        sub [n] u' by u;  # Keep the regular u, ignore next letter
+        sub u' [a e p o b c y i n] by _u;
     } directional_letters;
 
     lookup build_vowels {
@@ -17,8 +21,9 @@ feature ccmp {
         sub e by a_ _e;
         sub p by a_ _p;
         sub y by o_ _y;
-        sub ob by o_ _b;
-        sub ab by b_ _o;
+        sub __ob by o_ _b;
+        sub __ab by b_ _o;
+        sub __sb by _sb_ _o;
     } build_vowels;
 
     lookup vowel_by_vowel {
@@ -32,10 +37,12 @@ feature ccmp {
     } collapse_vowel_heads;
 
     lookup consonnant_by_vowel {
-        sub s' [a_ o_] by s_;
-        sub f' [a_] by af;
+        sub s' [a_ o_ _sb_ c] by s_;
+
+        sub f' [a_ c _sb_] by af;
+        sub k' [a_ c u _u _sb_] by ka_;
+
         sub f' [o_] by of;
-        sub k' [a_] by ka_;
         sub k' [o_] by ko_;
     } consonnant_by_vowel;
 
@@ -45,17 +52,30 @@ feature ccmp {
     } consonnant_by_preceding_vowel ;
 
     lookup vowel_by_consonnant {
-        sub [s_] a_' by _sa_;
+
+        sub s_ a_' by _sa_;
         sub s_ o_' by _so_ o_;
+        sub s_ c' by _sc;
 
         sub [n of] [a_]' by _ofa_ [a_];  # ofa marker
 
         sub _a' [n of] by _a _ofa_;  # mwm
         sub _p' [n of] by _p _ofa_;
-        sub _e' [n of s] by _en_;
 
-        sub [n af] [o_]' by _afo_ [o_];  # afo marker
-        sub [_o]' [n af] by [_o] _afo_;
+        sub [n of] c' [n of] by _cnc_ c _cnc_;  # c
+        sub c' [n of] by c _cnc_;
+        sub [n of] c' by _cnc_ c;
+
+        sub [n of] u' by _ofa_ _afu; # afu marker
+        sub [ka_ af] u' by _afu;
+
+        sub [n af] o_' by _afo_ o_;  # afo marker
+        sub _o' [n af] by _o _afo_;
+
+        sub _e' [n of s] by _en_;
+        sub _b' [n of s] by _bn_;
+
+        sub ka_ _u' by _ku;
 
     } vowel_by_consonnant;
 
@@ -66,6 +86,7 @@ feature ccmp {
         sub t a_ by ta_;
         sub t o_ by to_;
         sub t b_ by tb_;
+        sub t c by tc;
     } collapse_consonnants;
 
     lookup consonnant_codas {
@@ -87,17 +108,23 @@ feature kern {
     pos [_a _o] [a_ o_] -80;  # VOYELLE A DROITE
 
     pos [_so_] [o_] -80;  # S A GAUCHE
-    pos [s_ ks_] [_sa_ _so_] -80;
+    pos [s_ ks_] [_sa_ _so_ _sc _sb_] -80;
 
     pos [_a _o n of af _os_ _en_] [_as _os] -80;  # S A DROITE
 
     # horizontal consonnants
-    pos [_a _o _p] [_ofa_ _afo_] -320;  # N A DROITE
-    pos [_ofa_ _afo_] [af of n] -70;
+    pos [_a _o _p _afu] [_ofa_ _afo_] -320;  # N A DROITE
     pos [_a _o _p] [af of n] -70;
 
-    pos [_ofa_ _afo_] [a_ o_] -320;  # N A GAUCHE
-    pos [af of n] [_ofa_ _afo_] -70;
+    pos [_ofa_ _afo_] [a_ o_ _afu] -320;  # N A GAUCHE
     pos [af of n] [a_ o_] -70;
+
+    pos c _cnc_ -200;
+    pos _cnc_ c -200;
+
+    pos [_ofa_ _afo_ _cnc_ _afu] [af of n] -70;
+    pos [af of n] [_ofa_ _afo_ _cnc_ _afu] -70;
+
+    pos ka_ c -40;
 
 } kern;
