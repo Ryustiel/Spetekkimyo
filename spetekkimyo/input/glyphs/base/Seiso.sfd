@@ -22,7 +22,7 @@ OS2Version: 4
 OS2_WeightWidthSlopeOnly: 0
 OS2_UseTypoMetrics: 1
 CreationTime: 1741903524
-ModificationTime: 1742172275
+ModificationTime: 1742209960
 PfmFamily: 17
 TTFWeight: 400
 TTFWidth: 5
@@ -75,7 +75,7 @@ StdVW 5 [121]
 StemSnapH 13 [105 106 114]
 StemSnapV 21 [121 123 124 261 265]
 EndPrivate
-BeginChars: 65537 49
+BeginChars: 65537 45
 
 StartChar: .notdef
 Encoding: 65536 -1 0
@@ -892,46 +892,8 @@ SplineSet
 EndSplineSet
 EndChar
 
-StartChar: Edieresis
-Encoding: 203 203 39
-Width: 1000
-Flags: HW
-LayerCount: 2
-Fore
-SplineSet
-67 215 m 1
- 67 409 325 650 325 650 c 1
- 0 650 l 1
- 0 730 l 25
- 550 730 l 1
- 550 730 209 454 193 313 c 1
- 234 318 248 319 300 320 c 0
- 300 240 l 0
- 236 244 130 235 67 215 c 1
-EndSplineSet
-EndChar
-
-StartChar: Ecircumflex
-Encoding: 202 202 40
-Width: 1000
-Flags: HW
-LayerCount: 2
-Fore
-SplineSet
-0 730 m 29
- 550 730 l 5
- 550 730 137 508 137 270 c 0
- 137 77 300 80 300 80 c 1
- 300 0 l 1
- 300 0 50.8984375 1 50 275 c 0
- 49.255859375 502.020507812 294 650 294 650 c 5
- 0 650 l 5
- 0 730 l 29
-EndSplineSet
-EndChar
-
 StartChar: Ograve
-Encoding: 210 210 41
+Encoding: 210 210 39
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -950,7 +912,7 @@ EndSplineSet
 EndChar
 
 StartChar: uni008E
-Encoding: 142 142 42
+Encoding: 142 142 40
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -972,7 +934,7 @@ EndSplineSet
 EndChar
 
 StartChar: uni008F
-Encoding: 143 143 43
+Encoding: 143 143 41
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -986,25 +948,8 @@ SplineSet
 EndSplineSet
 EndChar
 
-StartChar: uni0086
-Encoding: 134 134 44
-Width: 1000
-Flags: HW
-LayerCount: 2
-Fore
-SplineSet
-360 180 m 0
- 360 89 172 80 0 80 c 0
- 0 0 l 0
- 167 0 440 5.68434188608e-14 440 180 c 0
- 440 360 167 360 0 360 c 0
- 0 280 l 0
- 172 280 360 271 360 180 c 0
-EndSplineSet
-EndChar
-
 StartChar: uni0085
-Encoding: 133 133 45
+Encoding: 133 133 42
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -1018,25 +963,8 @@ SplineSet
 EndSplineSet
 EndChar
 
-StartChar: uni0084
-Encoding: 132 132 46
-Width: 1000
-Flags: HW
-LayerCount: 2
-Fore
-SplineSet
-360 140 m 0
- 360 49 172 40 0 40 c 0
- 0 -40 l 0
- 167 -40 440 -40 440 140 c 0
- 440 320 167 320 0 320 c 0
- 0 240 l 0
- 172 240 360 231 360 140 c 0
-EndSplineSet
-EndChar
-
 StartChar: uni0083
-Encoding: 131 131 47
+Encoding: 131 131 43
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -1053,18 +981,18 @@ EndSplineSet
 EndChar
 
 StartChar: uni0082
-Encoding: 130 130 48
+Encoding: 130 130 44
 Width: 1000
 Flags: HW
 LayerCount: 2
 Fore
 SplineSet
 340 320 m 1
- 160.801757812 304 80 248 80 160 c 0
- 80 80 268 80 440 80 c 0
+ 160.801757812 304 80 253 80 160 c 0
+ 80 69 278 80 440 80 c 0
  440 0 l 0
  171 0 0.460807106423 0 0 160 c 0
- -0.0916730246808 191.830420461 6.60092040753 218.329185165 18.2568229592 240.000001583 c 1
+ -0.0916730246808 191.830420461 6.60092040753 219.329185165 18.2568229592 240.000001583 c 1
  0 240 l 25
  0 320 l 25
  340 320 l 1

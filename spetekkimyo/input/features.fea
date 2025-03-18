@@ -5,41 +5,103 @@ feature ccmp {
     script latn;
     language dflt required;
 
-    lookup directional_letters {
-        # Some letters have a completely different form depending on the surrounding letters
+    lookup ETAPE_1_CHOIX {  # Choix forme contextuelle de base
+
+        # Lettre F
+
+        # Lettre B
+
         sub [o n f] b' by __ob;
         sub [s k] b' by __sb;
         sub b' by __ab;
 
+        # Lettre U
+
         sub [n] u' by u;  # Keep the regular u, ignore next letter
         sub u' [a e p o b c y i n] by _u;
-    } directional_letters;
 
-    lookup build_vowels {
+    } ETAPE_1_CHOIX;
+
+    # 2. A partir de la on ne manipule que des glyphs avec des points d'attache constants
+    # On traite toutes les paires de lettres deux a deux 
+    # en assumant qu'elles sont en milieu de mot
+    # Ca inclu les formes f / n / etc;
+
+    lookup ETAPE_2_COMPOSANTS {  # Decoupe tous les caracteres en composants
+
+        # A E P | O Y
+
         sub a by a_ _a;
         sub o by o_ _o;
         sub e by a_ _e;
         sub p by a_ _p;
         sub y by o_ _y;
+
+        # B
+
         sub __ob by o_ _b;
         sub __ab by b_ _o;
         sub __sb by _sb_ _o;
-    } build_vowels;
 
-    lookup vowel_by_vowel {
-        sub _a' o_' by _ao_;
-        sub _o' a_' by _oa_;
-    } vowel_by_vowel;
+        # U
 
-    lookup collapse_vowel_heads {
-        sub [_oa_]' a_' by [_oa_];
-        sub [_ao_]' o_' by [_ao_];
-    } collapse_vowel_heads;
+        # S
+
+        # sub s by s_ _s;
+
+    } ETAPE_2_COMPOSANTS;
+
+    # 3. Fusionne les consonnes et voyelles en assumant qu'elles sont en début ou milieu
+
+    lookup ETAPE_3_FUSION {  # Fusionne les composants des que possible
+
+        # AO OA
+
+        sub _a o_ by _ao_;
+        sub _o a_ by _oa_;
+
+        sub _oa_ a_ by _oa_;
+        sub _ao_ o_ by _ao_;
+
+        # S
+
+        # sub _s a_ by _sa_;
+
+        # K
+
+        # sub k s_ by ks_;
+
+    } ETAPE_3_FUSION;
+
+    # 4. Modifie et positionne les accents
+
+    # lookup ETAPE_5_ACCENTS {  # Modifie et positionne les accents
+    # } ETAPE_5_ACCENTS;
+
+    # 5. On applique les formes purement esthétiques (connexions avec les lignes horizontales...)
+
+    # lookup ETAPE_6_ESTHETIQUE {  # Applique les formes purement esthétiques
+
+        # N F CONNECT FORMS
+
+        # sub n a_' by _ofa_ a_; ...
+
+        # U B ALTERNATES ... or something
+
+        # sub n u' by _nu;
+
+        # CODAS (eb, -k, -t, ...) << le positionnement de "i" n'est pas affecté donc c un vrai truc esthétique
+
+    # } ETAPE_6_ESTHETIQUE;
+
+
+
+    # TOUT CE QUI SE TROUVE CI DESSOUS DOIT ETRE FUSIONNER PLUS HAUT
 
     lookup consonnant_by_vowel {
         sub s' [a_ o_ _sb_ c] by s_;
 
-        sub f' [a_ c _sb_] by af;
+        sub f' [a_ c u _u _sb_] by af;
         sub k' [a_ c u _u _sb_] by ka_;
 
         sub f' [o_] by of;
@@ -66,16 +128,19 @@ feature ccmp {
         sub c' [n of] by c _cnc_;
         sub [n of] c' by _cnc_ c;
 
-        sub [n of] u' by _ofa_ _afu; # afu marker
+        # U junctions with horizontal consonants
+        sub ka_ _u' [n of] by _ofa_ _ku;
+        sub ka_ _u' by _ku;
+        sub [n of] u' by _ofa_ _afu;
         sub [ka_ af] u' by _afu;
+        sub _u' n by ufa_ _ofa_;
+        sub _u' af by ufa_;
 
         sub [n af] o_' by _afo_ o_;  # afo marker
         sub _o' [n af] by _o _afo_;
 
         sub _e' [n of s] by _en_;
         sub _b' [n of s] by _bn_;
-
-        sub ka_ _u' by _ku;
 
     } vowel_by_consonnant;
 
@@ -113,11 +178,14 @@ feature kern {
     pos [_a _o n of af _os_ _en_] [_as _os] -80;  # S A DROITE
 
     # horizontal consonnants
-    pos [_a _o _p _afu] [_ofa_ _afo_] -320;  # N A DROITE
+    pos [_a _o _p] [_ofa_ _afo_] -320;  # N A DROITE
     pos [_a _o _p] [af of n] -70;
 
     pos [_ofa_ _afo_] [a_ o_ _afu] -320;  # N A GAUCHE
     pos [af of n] [a_ o_] -70;
+
+    pos _afu _ofa_ -250;
+    pos ufa_ _ofa_ -260;
 
     pos c _cnc_ -200;
     pos _cnc_ c -200;
@@ -126,5 +194,11 @@ feature kern {
     pos [af of n] [_ofa_ _afo_ _cnc_ _afu] -70;
 
     pos ka_ c -40;
+
+    # VOYELLES DEUX A DEUX
+
+    # COMPOSANTS S
+
+    # ELEMENTS HORIZONTAUX ESTHETIQUES
 
 } kern;
