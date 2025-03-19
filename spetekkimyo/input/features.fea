@@ -38,7 +38,7 @@ feature ccmp {
 
     lookup ETAPE_2_COMPOSANTS {  # Decoupe tous les caracteres en composants
 
-        # A E P | O Y
+        # Explicit 2 Parts
 
         sub a by a_ _a;
         sub o by o_ _o;
@@ -46,17 +46,12 @@ feature ccmp {
         sub p by a_ _p;
         sub y by o_ _y;
         sub c by c_ _c;
+        sub s by s_ _s;
 
         # B
 
         sub bR by o_ _b;
         sub bL by b_ _o;
-
-        # C
-
-        # S
-
-        sub s by s_ _s;
 
     } ETAPE_2_COMPOSANTS;
 
@@ -88,7 +83,7 @@ feature ccmp {
         sub t a_ by ta_;
         sub t o_ by to_;
         sub t b_ by tb_;
-        sub t c_ by tc;
+        sub t c_ by tc_;
 
     } ETAPE_3_FUSION;
 
@@ -103,35 +98,41 @@ feature ccmp {
 
         # HORIZONTAL CONNECTORS
 
-        sub [n f_low] a_' by hz_320_low a_;
-        sub _a' [n f_low] by _a hz_320_low;
-        sub _p' [n f_low] by _p hz_320_low;
+        sub [n f_low] a_' by _na_;
+        sub [n f_low] c_' by _nc_;
+        sub [n f_high] o_' by _no_;
+        sub [_a _p] b_' by _bn_;
 
-        sub [n f_low] c' [n f_low] by hz_200_low c hz_200_low;  # c
-        sub c' [n f_low] by c hz_200_low;
-        sub [n f_low] c' by hz_200_low c;
+        sub _c' [n f_low] by _cn_;
+        sub _a' [n f_low] by _an_;
+        sub _o' [n f_high] by _on_;
 
-        sub [n f_high] o_' by hz_320_high o_;  # afo marker
-        sub _o' [n f_high] by _o hz_320_high;
-
-        sub _e' [n f_low s] by hz_275_low;
-        sub _b' [n f_low s] by hz_275_high;
+        sub _p' [n f_low] by _pn_;
+        sub _e' [n f_low s_] by _en_;
+        sub _b' [n f_high] by _bn_;
 
         # U FORMS
 
-        sub k_high uR' [n f_low] by hz_320_low u_after_high;
         sub k_high uR' by u_after_high;
-        sub [n f_low] uL' by hz_320_low uL_after_hz_high;
+        sub [n f_low] uL' by uL_after_hz_high;
         sub [k_high f_high] uL' by uL_after_hz_high;
-        sub uR' n by uR_before_hz_high hz_320_low;
+        sub uR' n by uR_before_hz_high;
         sub uR' f_high by uR_before_hz_high;
 
-        # ENDING FORMS
+        # B ENDING FORMS
+
+        sub [f_low] b_' _o' [a_ o_ s_] by b_; # Ignoring certain combinations
+        sub _e' b_' _o' by b_ending;
+
+        # S ENDING FORMS
 
         sub [_a n f_high] s_' _s' by s_after_high;
-        sub [f_low hz_275_low] _s' by s_after_low;
-        sub _o' s_' by _os_;
-        sub _os_ _s' by s_after_low;
+        sub [f_low _en_] s_' _s' by s_after_low;
+
+        sub _o' s_' _s' by os_ending;
+        sub _c' s_' _s' by cs_ending;
+        sub _p' s_' _s' by ps_ending;
+        sub _y' s_' _s' by ys_ending;
 
     } ETAPE_5_ESTHETIQUE;
 
@@ -143,34 +144,27 @@ feature kern {
     script latn;
     language dflt;
 
-    # SUIVANT VOYELLE -80
+    # MERGE VOYELLE -80
 
     pos [_a _o] [a_ o_] -80;
+
+    # MERGE VOYELLE S -80
+
     pos [_s] [o_] -80;
-    pos [_a _o n f_low f_high _os_ hz_275_low] [s_after_high s_after_low] -80;
+    pos _a s_after_high -80;
+    pos [f_low _en_] s_after_low -80;
 
-    # HZ LINES
-    pos [_a _o _p] [hz_320_low hz_320_high] -320;  # N A DROITE
-    pos [_a _o _p] [f_high f_low n] -70;
+    pos [n f_high] s_after_high -5;
 
-    pos [hz_320_low hz_320_high] [a_ o_ uL_after_hz_high] -320;  # N A GAUCHE
-    pos [f_high f_low n] [a_ o_] -70;
+    # MERGE VOYELLE F N
 
-    pos uL_after_hz_high hz_320_low -250;
-    pos uR_before_hz_high hz_320_low -260;
+    pos [_a _o _p _an_ _on_ _cn_ _pn_ _bn_ _en_] [f_high f_low n _bn_] -20;
+    pos [f_high f_low n] [a_ o_ _na_ _no_ _nc_] -20;
 
-    pos c hz_200_low -200;
-    pos hz_200_low c -200;
+    # POSITIONNEMENT K T VOYELLE
 
-    pos [hz_320_low hz_320_high hz_200_low uL_after_hz_high] [f_high f_low n] -70;
-    pos [f_high f_low n] [hz_320_low hz_320_high hz_200_low uL_after_hz_high] -70;
+    pos k_high c_ -40;
 
-    pos k_high c -40;
-
-    # VOYELLES DEUX A DEUX
-
-    # COMPOSANTS S
-
-    # ELEMENTS HORIZONTAUX ESTHETIQUES
+    # MERGE K T S
 
 } kern;
