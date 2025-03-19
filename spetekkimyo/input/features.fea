@@ -45,6 +45,7 @@ feature ccmp {
         sub e by a_ _e;
         sub p by a_ _p;
         sub y by o_ _y;
+        sub c by c_ _c;
 
         # B
 
@@ -75,7 +76,7 @@ feature ccmp {
 
         sub _s a_ by _sa_;
         sub _s b_ by _sb_;
-        sub _s c by _sc;
+        sub _s c_ by _sc_;
 
         # K
 
@@ -87,7 +88,7 @@ feature ccmp {
         sub t a_ by ta_;
         sub t o_ by to_;
         sub t b_ by tb_;
-        sub t c by tc;
+        sub t c_ by tc;
 
     } ETAPE_3_FUSION;
 
@@ -127,9 +128,10 @@ feature ccmp {
 
         # ENDING FORMS
 
-        sub [_a n f_high] s' by _as;
-        sub [_o f_low hz_275_low] s' by _os;
-        sub _o' _os by _os_;
+        sub [_a n f_high] s_' _s' by s_after_high;
+        sub [f_low hz_275_low] _s' by s_after_low;
+        sub _o' s_' by _os_;
+        sub _os_ _s' by s_after_low;
 
     } ETAPE_5_ESTHETIQUE;
 
@@ -141,18 +143,11 @@ feature kern {
     script latn;
     language dflt;
 
-    # VOYELLE A DROITE
+    # SUIVANT VOYELLE -80
 
     pos [_a _o] [a_ o_] -80;
-
-    # S A GAUCHE
-
     pos [_s] [o_] -80;
-    pos [s_ ks_] [_sa_ _s _sc _sb_] -80;
-
-    # S A DROITE
-
-    pos [_a _o n f_low f_high _os_ hz_275_low] [_as _os] -80;
+    pos [_a _o n f_low f_high _os_ hz_275_low] [s_after_high s_after_low] -80;
 
     # HZ LINES
     pos [_a _o _p] [hz_320_low hz_320_high] -320;  # N A DROITE
