@@ -22,7 +22,7 @@ OS2Version: 4
 OS2_WeightWidthSlopeOnly: 0
 OS2_UseTypoMetrics: 1
 CreationTime: 1741903524
-ModificationTime: 1742209960
+ModificationTime: 1742372409
 PfmFamily: 17
 TTFWeight: 400
 TTFWidth: 5
@@ -399,8 +399,8 @@ Fore
 SplineSet
 360 240 m 5
  360 320 l 5
- 0 320 l 5
- 0 240 l 5
+ 0 320 l 1
+ 0 240 l 1
  360 240 l 5
 EndSplineSet
 EndChar
@@ -414,8 +414,8 @@ Fore
 SplineSet
 320 240 m 5
  320 320 l 5
- 0 320 l 5
- 0 240 l 5
+ 0 320 l 1
+ 0 240 l 1
  320 240 l 5
 EndSplineSet
 EndChar
@@ -496,8 +496,8 @@ Fore
 SplineSet
 0 0 m 1
  80 0 l 1
- 80 320 l 5
- 0 320 l 5
+ 80 320 l 1
+ 0 320 l 1
  0 0 l 1
 EndSplineSet
 EndChar
@@ -619,8 +619,8 @@ LayerCount: 2
 Fore
 SplineSet
 150 320 m 5
- 0 320 l 4
- 0 240 l 4
+ 0 320 l 0
+ 0 240 l 0
  150 240 l 5
  150 320 l 5
 EndSplineSet
@@ -689,10 +689,10 @@ VStem: -228 121<252 275.667 252 281>
 LayerCount: 2
 Fore
 SplineSet
-275 320 m 0
+275 320 m 4
  186 320 100 296 0 200 c 1
- 148 241 221 240 275 240 c 0
- 275 320 l 0
+ 148 241 221 240 275 240 c 4
+ 275 320 l 4
 EndSplineSet
 EndChar
 
@@ -769,15 +769,8 @@ SplineSet
 EndSplineSet
 EndChar
 
-StartChar: odieresis
-Encoding: 246 246 33
-Width: 1000
-Flags: HW
-LayerCount: 2
-EndChar
-
 StartChar: Thorn
-Encoding: 222 222 34
+Encoding: 222 222 33
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -794,7 +787,7 @@ EndSplineSet
 EndChar
 
 StartChar: germandbls
-Encoding: 223 223 35
+Encoding: 223 223 34
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -818,7 +811,7 @@ EndSplineSet
 EndChar
 
 StartChar: agrave
-Encoding: 224 224 36
+Encoding: 224 224 35
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -842,7 +835,7 @@ EndSplineSet
 EndChar
 
 StartChar: aacute
-Encoding: 225 225 37
+Encoding: 225 225 36
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -868,7 +861,7 @@ EndSplineSet
 EndChar
 
 StartChar: Igrave
-Encoding: 204 204 38
+Encoding: 204 204 37
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -893,7 +886,7 @@ EndSplineSet
 EndChar
 
 StartChar: Ograve
-Encoding: 210 210 39
+Encoding: 210 210 38
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -912,7 +905,7 @@ EndSplineSet
 EndChar
 
 StartChar: uni008E
-Encoding: 142 142 40
+Encoding: 142 142 39
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -934,7 +927,7 @@ EndSplineSet
 EndChar
 
 StartChar: uni008F
-Encoding: 143 143 41
+Encoding: 143 143 40
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -949,22 +942,22 @@ EndSplineSet
 EndChar
 
 StartChar: uni0085
-Encoding: 133 133 42
+Encoding: 133 133 41
 Width: 1000
 Flags: HW
 LayerCount: 2
 Fore
 SplineSet
-440 80 m 1
+440 80 m 5
  0 80 l 0
  0 0 l 0
- 440 0 l 1
- 440 80 l 1
+ 440 0 l 5
+ 440 80 l 5
 EndSplineSet
 EndChar
 
 StartChar: uni0083
-Encoding: 131 131 43
+Encoding: 131 131 42
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -981,7 +974,7 @@ EndSplineSet
 EndChar
 
 StartChar: uni0082
-Encoding: 130 130 44
+Encoding: 130 130 43
 Width: 1000
 Flags: HW
 LayerCount: 2
@@ -996,6 +989,23 @@ SplineSet
  0 240 l 25
  0 320 l 25
  340 320 l 1
+EndSplineSet
+EndChar
+
+StartChar: uni0091
+Encoding: 145 145 44
+Width: 1000
+Flags: HW
+LayerCount: 2
+Fore
+SplineSet
+150 320 m 5
+ 80 320 l 5
+ 80 330 l 5
+ 0 330 l 4
+ 0 240 l 4
+ 150 240 l 5
+ 150 320 l 5
 EndSplineSet
 EndChar
 EndChars

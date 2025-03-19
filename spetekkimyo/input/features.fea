@@ -5,27 +5,36 @@ feature ccmp {
     script latn;
     language dflt required;
 
+    # ======================================================== 1 CHOIX
+
     lookup ETAPE_1_CHOIX {  # Choix forme contextuelle de base
 
         # Lettre F
 
+        sub [a p] f' by f_high;
+        sub [o e] f' by f_low;
+
+        sub f' [a c u] by f_high;
+        sub k' [a c u b] by k_high;
+
+        sub f' [o b] by f_low;  # This isnt optimal but it's easier to read
+        sub k' [o b] by k_low;
+
         # Lettre B
 
-        sub [o n f] b' by __ob;
-        sub [s k] b' by __sb;
-        sub b' by __ab;
+        sub [o n f_low] b' by bR;
+        sub b' by bL;
 
         # Lettre U
 
-        sub [n] u' by u;  # Keep the regular u, ignore next letter
-        sub u' [a e p o b c y i n] by _u;
+        sub [n] u' by uL;  # Ignore next letter
+        sub u' [a e p o b c y i n] by uR;
+        sub u' by uL;
+        # Define all other forms of U as codas!
 
     } ETAPE_1_CHOIX;
 
-    # 2. A partir de la on ne manipule que des glyphs avec des points d'attache constants
-    # On traite toutes les paires de lettres deux a deux 
-    # en assumant qu'elles sont en milieu de mot
-    # Ca inclu les formes f / n / etc;
+    # ======================================================== 2 COMPOSANTS
 
     lookup ETAPE_2_COMPOSANTS {  # Decoupe tous les caracteres en composants
 
@@ -39,19 +48,18 @@ feature ccmp {
 
         # B
 
-        sub __ob by o_ _b;
-        sub __ab by b_ _o;
-        sub __sb by _sb_ _o;
+        sub bR by o_ _b;
+        sub bL by b_ _o;
 
-        # U
+        # C
 
         # S
 
-        # sub s by s_ _s;
+        sub s by s_ _s;
 
     } ETAPE_2_COMPOSANTS;
 
-    # 3. Fusionne les consonnes et voyelles en assumant qu'elles sont en début ou milieu
+    # ======================================================== 3 FUSION
 
     lookup ETAPE_3_FUSION {  # Fusionne les composants des que possible
 
@@ -65,103 +73,66 @@ feature ccmp {
 
         # S
 
-        # sub _s a_ by _sa_;
+        sub _s a_ by _sa_;
+        sub _s b_ by _sb_;
+        sub _s c by _sc;
 
         # K
 
-        # sub k s_ by ks_;
-
-    } ETAPE_3_FUSION;
-
-    # 4. Modifie et positionne les accents
-
-    # lookup ETAPE_5_ACCENTS {  # Modifie et positionne les accents
-    # } ETAPE_5_ACCENTS;
-
-    # 5. On applique les formes purement esthétiques (connexions avec les lignes horizontales...)
-
-    # lookup ETAPE_6_ESTHETIQUE {  # Applique les formes purement esthétiques
-
-        # N F CONNECT FORMS
-
-        # sub n a_' by _ofa_ a_; ...
-
-        # U B ALTERNATES ... or something
-
-        # sub n u' by _nu;
-
-        # CODAS (eb, -k, -t, ...) << le positionnement de "i" n'est pas affecté donc c un vrai truc esthétique
-
-    # } ETAPE_6_ESTHETIQUE;
-
-
-
-    # TOUT CE QUI SE TROUVE CI DESSOUS DOIT ETRE FUSIONNER PLUS HAUT
-
-    lookup consonnant_by_vowel {
-        sub s' [a_ o_ _sb_ c] by s_;
-
-        sub f' [a_ c u _u _sb_] by af;
-        sub k' [a_ c u _u _sb_] by ka_;
-
-        sub f' [o_] by of;
-        sub k' [o_] by ko_;
-    } consonnant_by_vowel;
-
-    lookup consonnant_by_preceding_vowel {
-        sub [_a _p] f' by af;
-        sub [_o _e] f' by of;
-    } consonnant_by_preceding_vowel ;
-
-    lookup vowel_by_consonnant {
-
-        sub s_ a_' by _sa_;
-        sub s_ o_' by _so_ o_;
-        sub s_ c' by _sc;
-
-        sub [n of] [a_]' by _ofa_ [a_];  # ofa marker
-
-        sub _a' [n of] by _a _ofa_;  # mwm
-        sub _p' [n of] by _p _ofa_;
-
-        sub [n of] c' [n of] by _cnc_ c _cnc_;  # c
-        sub c' [n of] by c _cnc_;
-        sub [n of] c' by _cnc_ c;
-
-        # U junctions with horizontal consonants
-        sub ka_ _u' [n of] by _ofa_ _ku;
-        sub ka_ _u' by _ku;
-        sub [n of] u' by _ofa_ _afu;
-        sub [ka_ af] u' by _afu;
-        sub _u' n by ufa_ _ofa_;
-        sub _u' af by ufa_;
-
-        sub [n af] o_' by _afo_ o_;  # afo marker
-        sub _o' [n af] by _o _afo_;
-
-        sub _e' [n of s] by _en_;
-        sub _b' [n of s] by _bn_;
-
-    } vowel_by_consonnant;
-
-    lookup collapse_consonnants {
-        sub k s by ks;
         sub k s_ by ks_;
+
+        # T
+
         sub t s_ by ts_;
         sub t a_ by ta_;
         sub t o_ by to_;
         sub t b_ by tb_;
         sub t c by tc;
-    } collapse_consonnants;
 
-    lookup consonnant_codas {
-        sub [_a n af] s' by _as;
-        sub [_o of _en_] s' by _os;
-    } consonnant_codas;
+    } ETAPE_3_FUSION;
 
-    lookup vowel_by_consonnant_codas {
+    # ======================================================== 4 ACCENTS
+
+    # lookup ETAPE_4_ACCENTS {  # Modifie et positionne les accents
+    # } ETAPE_4_ACCENTS;
+
+    # ======================================================== 5 ESTHETIQUE
+
+    lookup ETAPE_5_ESTHETIQUE {  # Applique les formes purement esthétiques
+
+        # HORIZONTAL CONNECTORS
+
+        sub [n f_low] a_' by hz_320_low a_;
+        sub _a' [n f_low] by _a hz_320_low;
+        sub _p' [n f_low] by _p hz_320_low;
+
+        sub [n f_low] c' [n f_low] by hz_200_low c hz_200_low;  # c
+        sub c' [n f_low] by c hz_200_low;
+        sub [n f_low] c' by hz_200_low c;
+
+        sub [n f_high] o_' by hz_320_high o_;  # afo marker
+        sub _o' [n f_high] by _o hz_320_high;
+
+        sub _e' [n f_low s] by hz_275_low;
+        sub _b' [n f_low s] by hz_275_high;
+
+        # U FORMS
+
+        sub k_high uR' [n f_low] by hz_320_low u_after_high;
+        sub k_high uR' by u_after_high;
+        sub [n f_low] uL' by hz_320_low uL_after_hz_high;
+        sub [k_high f_high] uL' by uL_after_hz_high;
+        sub uR' n by uR_before_hz_high hz_320_low;
+        sub uR' f_high by uR_before_hz_high;
+
+        # ENDING FORMS
+
+        sub [_a n f_high] s' by _as;
+        sub [_o f_low hz_275_low] s' by _os;
         sub _o' _os by _os_;
-    } vowel_by_consonnant_codas;
+
+    } ETAPE_5_ESTHETIQUE;
+
 } ccmp;
 
 feature kern {
@@ -170,30 +141,36 @@ feature kern {
     script latn;
     language dflt;
 
-    pos [_a _o] [a_ o_] -80;  # VOYELLE A DROITE
+    # VOYELLE A DROITE
 
-    pos [_so_] [o_] -80;  # S A GAUCHE
-    pos [s_ ks_] [_sa_ _so_ _sc _sb_] -80;
+    pos [_a _o] [a_ o_] -80;
 
-    pos [_a _o n of af _os_ _en_] [_as _os] -80;  # S A DROITE
+    # S A GAUCHE
 
-    # horizontal consonnants
-    pos [_a _o _p] [_ofa_ _afo_] -320;  # N A DROITE
-    pos [_a _o _p] [af of n] -70;
+    pos [_s] [o_] -80;
+    pos [s_ ks_] [_sa_ _s _sc _sb_] -80;
 
-    pos [_ofa_ _afo_] [a_ o_ _afu] -320;  # N A GAUCHE
-    pos [af of n] [a_ o_] -70;
+    # S A DROITE
 
-    pos _afu _ofa_ -250;
-    pos ufa_ _ofa_ -260;
+    pos [_a _o n f_low f_high _os_ hz_275_low] [_as _os] -80;
 
-    pos c _cnc_ -200;
-    pos _cnc_ c -200;
+    # HZ LINES
+    pos [_a _o _p] [hz_320_low hz_320_high] -320;  # N A DROITE
+    pos [_a _o _p] [f_high f_low n] -70;
 
-    pos [_ofa_ _afo_ _cnc_ _afu] [af of n] -70;
-    pos [af of n] [_ofa_ _afo_ _cnc_ _afu] -70;
+    pos [hz_320_low hz_320_high] [a_ o_ uL_after_hz_high] -320;  # N A GAUCHE
+    pos [f_high f_low n] [a_ o_] -70;
 
-    pos ka_ c -40;
+    pos uL_after_hz_high hz_320_low -250;
+    pos uR_before_hz_high hz_320_low -260;
+
+    pos c hz_200_low -200;
+    pos hz_200_low c -200;
+
+    pos [hz_320_low hz_320_high hz_200_low uL_after_hz_high] [f_high f_low n] -70;
+    pos [f_high f_low n] [hz_320_low hz_320_high hz_200_low uL_after_hz_high] -70;
+
+    pos k_high c -40;
 
     # VOYELLES DEUX A DEUX
 
