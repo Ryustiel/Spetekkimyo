@@ -1,9 +1,9 @@
 import os
 import sys
+import json
 from typing import List # type: ignore
 from pathlib import Path # type: ignore
 import fontforge
-import json
 
 if len(sys.argv) <= 1: raise ValueError("Missing output_dir argument")
 

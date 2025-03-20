@@ -1,16 +1,28 @@
 
 
+markClass [iHH iH] <anchor 0 0> @diacr;
+
 feature ccmp {
     script DFLT;
     language dflt required;
     script latn;
     language dflt required;
 
-    @DIACRITICS = [i iHH iM];
+    lookup i_process {
+        lookupflag IgnoreMarks;
+        sub i by iHH;
+    } i_process;
+
+    lookup i_process2 {
+        lookupflag IgnoreMarks; 
+        sub iHH by iH;
+    } i_process2;
 
     # ======================================================== 1 CHOIX
 
     lookup ETAPE_1_CHOIX {  # Choix forme contextuelle de base
+
+        lookupflag IgnoreMarks;
 
         # Lettre F
 
@@ -42,6 +54,8 @@ feature ccmp {
 
     lookup ETAPE_2_COMPOSANTS {  # Decoupe tous les caracteres en composants
 
+        lookupflag IgnoreMarks;
+
         # Explicit 2 Parts
 
         sub a by a_ _a;
@@ -62,6 +76,8 @@ feature ccmp {
     # ======================================================== 3 FUSION
 
     lookup ETAPE_3_FUSION {  # Fusionne les composants des que possible
+
+        lookupflag IgnoreMarks;
 
         # AO OA
 
@@ -101,6 +117,8 @@ feature ccmp {
     # ======================================================== 5 ESTHETIQUE
 
     lookup ETAPE_5_ESTHETIQUE {  # Applique les formes purement esthétiques
+
+        lookupflag IgnoreMarks;
 
         # HORIZONTAL CONNECTORS
 
