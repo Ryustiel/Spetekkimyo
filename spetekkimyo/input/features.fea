@@ -1,9 +1,12 @@
 
+
 feature ccmp {
     script DFLT;
     language dflt required;
     script latn;
     language dflt required;
+
+    @DIACRITICS = [i iHH iM];
 
     # ======================================================== 1 CHOIX
 
@@ -11,26 +14,27 @@ feature ccmp {
 
         # Lettre F
 
-        sub [a p] f' by f_high;
-        sub [o e] f' by f_low;
+        sub [a p] f' by fH;
+        sub [o e] f' by fL;
 
-        sub f' [a c u] by f_high;
-        sub k' [a c u b] by k_high;
+        sub f' [a c u] by fH;
+        sub k' [a c u b] by kH;
 
-        sub f' [o b] by f_low;  # This isnt optimal but it's easier to read
-        sub k' [o b] by k_low;
+        sub f' [o b] by fL;  # This isnt optimal but it's easier to read
+        sub k' [o b] by kL;
 
         # Lettre B
 
-        sub [o n f_low] b' by bR;
+        sub [o n fL] b' by bR;
         sub b' by bL;
 
         # Lettre U
 
-        sub [n] u' by uL;  # Ignore next letter
+        sub [t s] u' by uR;  # Ignore next letter
+        sub [n] u' by uL;  
         sub u' [a e p o b c y i n] by uR;
+        sub u' [f] [a e p c u n] by uR;
         sub u' by uL;
-        # Define all other forms of U as codas!
 
     } ETAPE_1_CHOIX;
 
@@ -73,6 +77,8 @@ feature ccmp {
         sub _s b_ by _sb_;
         sub _s c_ by _sc_;
 
+        sub _s uR by uR;
+
         # K
 
         sub k s_ by ks_;
@@ -98,36 +104,44 @@ feature ccmp {
 
         # HORIZONTAL CONNECTORS
 
-        sub [n f_low] a_' by _na_;
-        sub [n f_low] c_' by _nc_;
-        sub [n f_high] o_' by _no_;
+        sub [n fL] a_' by _na_;
+        sub [n fL] c_' by _nc_;
+        sub [n fH] o_' by _no_;
         sub [_a _p] b_' by _bn_;
 
-        sub _c' [n f_low] by _cn_;
-        sub _a' [n f_low] by _an_;
-        sub _o' [n f_high] by _on_;
+        sub _c' [n fL] by _cn_;
+        sub _a' [n fL] by _an_;
+        sub _o' [n fH] by _on_;
 
-        sub _p' [n f_low] by _pn_;
-        sub _e' [n f_low s_] by _en_;
-        sub _b' [n f_high] by _bn_;
+        sub _p' [n fL] by _pn_;
+        sub _e' [n fL s_] by _en_;
+        sub _b' [n fH] by _bn_;
 
         # U FORMS
 
-        sub k_high uR' by u_after_high;
-        sub [n f_low] uL' by uL_after_hz_high;
-        sub [k_high f_high] uL' by uL_after_hz_high;
-        sub uR' n by uR_before_hz_high;
-        sub uR' f_high by uR_before_hz_high;
+        sub kH uR' by uR_after_high;
+        sub _s uR' by uR_after_high;
+
+        sub n uL' by uL_after_n;
+        sub [kH fH] uL' by uL_after_high;
+
+        sub uR' n by uR_before_n;
+        sub uR' [fH] by uR_before_high;
+
+        sub t' uR by tuR_;
 
         # B ENDING FORMS
 
-        sub [f_low] b_' _o' [a_ o_ s_] by b_; # Ignoring certain combinations
+        sub [fL] b_' _o' [a_ o_ s_] by b_; # Ignoring certain combinations
         sub _e' b_' _o' by b_ending;
+        sub _o o_' _b' by b_ending;  # _b implies it is not connected to the next letter
+        # TODO : Mix b_ending to bs, bn, bf, bt, bk depending on the consonnant that follows
+        # TODO : Ignore b_ending if followed by any other shit
 
         # S ENDING FORMS
 
-        sub [_a n f_high] s_' _s' by s_after_high;
-        sub [f_low _en_] s_' _s' by s_after_low;
+        sub [_a n fH] s_' _s' by s_after_high;
+        sub [fL _en_] s_' _s' by s_after_low;
 
         sub _o' s_' _s' by os_ending;
         sub _c' s_' _s' by cs_ending;
@@ -147,23 +161,29 @@ feature kern {
     # MERGE VOYELLE -80
 
     pos [_a _o] [a_ o_] -80;
+    pos _o b_ending -5;
+
+    # VOYELLE U
+
+    pos tuR_ [uR uR_before_n uR_before_high] -160;
+    pos s_ [uR uR_before_n uR_before_high] -120;
 
     # MERGE VOYELLE S -80
 
     pos [_s] [o_] -80;
     pos _a s_after_high -80;
-    pos [f_low _en_] s_after_low -80;
+    pos [fL _en_] s_after_low -80;
 
-    pos [n f_high] s_after_high -5;
+    pos [n fH] s_after_high -5;
 
     # MERGE VOYELLE F N
 
-    pos [_a _o _p _an_ _on_ _cn_ _pn_ _bn_ _en_] [f_high f_low n _bn_] -20;
-    pos [f_high f_low n] [a_ o_ _na_ _no_ _nc_] -20;
+    pos [_a _o _p _an_ _on_ _cn_ _pn_ _bn_ _en_] [fH fL n _bn_] -20;
+    pos [fH fL n] [a_ o_ _na_ _no_ _nc_] -20;
 
     # POSITIONNEMENT K T VOYELLE
 
-    pos k_high c_ -40;
+    pos kH c_ -40;
 
     # MERGE K T S
 
