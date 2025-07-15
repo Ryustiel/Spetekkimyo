@@ -40,15 +40,32 @@ feature ccmp {
 
         sub [t s] u' by uR;  # Ignore next letter
         sub [n] u' by uL;  
-        sub u' [a e p o b c y i n] by uR;
+        sub u' [a e p o b c y n] by uR;
         sub u' [f] [a e p c u n] by uR;
         sub u' by uL;
 
     } ETAPE_1_CHOIX;
 
-    # ======================================================== 2 COMPOSANTS
+    # ======================================================== 2 ACCENTS
 
-    lookup ETAPE_2_COMPOSANTS {  # Decoupe tous les caracteres en composants
+    lookup ETAPE_2_ACCENTS {  # Positionne verticalement les accents
+
+        sub i' [t] by i_it;
+        sub i' [s] by i_sia;
+        sub [t] i' [a o e p y bL bR uL uR] by i_tia;
+
+        sub [a o e p y bL bR uL uR] i' [a o e p y bL bR uL uR] by i_aj;
+        sub i' by i_ia;
+        sub j' by i_ja;
+
+        sub h' [a o e p y bL bR uL uR] by h_ha;
+        sub [a o e p y bL bR uL uR] h' by h_ah;
+
+    } ETAPE_2_ACCENTS;
+
+    # ======================================================== 3 COMPOSITION FUSION
+
+    lookup ETAPE_3_COMPOSANTS {  # Decoupe tous les caracteres en composants
 
         lookupflag UseMarkFilteringSet @DUMMY_CLASS;
 
@@ -67,9 +84,7 @@ feature ccmp {
         sub bR by o_ _b;
         sub bL by b_ _o;
 
-    } ETAPE_2_COMPOSANTS;
-
-    # ======================================================== 3 FUSION
+    } ETAPE_3_COMPOSANTS;
 
     lookup ETAPE_3_FUSION {  # Fusionne les composants des que possible
 
@@ -105,14 +120,9 @@ feature ccmp {
 
     } ETAPE_3_FUSION;
 
-    # ======================================================== 4 ACCENTS
+    # ======================================================== 4 ESTHETIQUE
 
-    # lookup ETAPE_4_ACCENTS {  # Modifie et positionne les accents
-    # } ETAPE_4_ACCENTS;
-
-    # ======================================================== 5 ESTHETIQUE
-
-    lookup ETAPE_5_ESTHETIQUE {  # Applique les formes purement esthétiques
+    lookup ETAPE_4_ESTHETIQUE {  # Applique les formes purement esthï¿½tiques
 
         lookupflag UseMarkFilteringSet @DUMMY_CLASS;
 
@@ -162,43 +172,43 @@ feature ccmp {
         sub _p' s_' _s' by ps_ending;
         sub _y' s_' _s' by ys_ending;
 
-    } ETAPE_5_ESTHETIQUE;
+    } ETAPE_4_ESTHETIQUE;
+
+    # ======================================================== 5 KERNING
+
+    lookup ETAPE_5_KERNING {
+
+        lookupflag IgnoreMarks;
+
+        # MERGE VOYELLE -80
+
+        pos [_a _o] [a_ o_] -80;
+        pos _o b_ending -5;
+
+        # VOYELLE U
+
+        pos tuR_ [uR uR_before_n uR_before_high] -160;
+        pos s_ [uR uR_before_n uR_before_high] -120;
+
+        # MERGE VOYELLE S -80
+
+        pos [_s] [o_] -80;
+        pos _a s_after_high -80;
+        pos [fL _en_] s_after_low -80;
+
+        pos [n fH] s_after_high -5;
+
+        # MERGE VOYELLE F N
+
+        pos [_a _o _p _an_ _on_ _cn_ _pn_ _bn_ _en_] [fH fL n _bn_] -20;
+        pos [fH fL n] [a_ o_ _na_ _no_ _nc_] -20;
+
+        # POSITIONNEMENT K T VOYELLE
+
+        pos kH c_ -40;
+
+        # MERGE K T S
+
+    } ETAPE_5_KERNING;
 
 } ccmp;
-
-feature kern {
-    script DFLT;
-    language dflt;
-    script latn;
-    language dflt;
-
-    # MERGE VOYELLE -80
-
-    pos [_a _o] [a_ o_] -80;
-    pos _o b_ending -5;
-
-    # VOYELLE U
-
-    pos tuR_ [uR uR_before_n uR_before_high] -160;
-    pos s_ [uR uR_before_n uR_before_high] -120;
-
-    # MERGE VOYELLE S -80
-
-    pos [_s] [o_] -80;
-    pos _a s_after_high -80;
-    pos [fL _en_] s_after_low -80;
-
-    pos [n fH] s_after_high -5;
-
-    # MERGE VOYELLE F N
-
-    pos [_a _o _p _an_ _on_ _cn_ _pn_ _bn_ _en_] [fH fL n _bn_] -20;
-    pos [fH fL n] [a_ o_ _na_ _no_ _nc_] -20;
-
-    # POSITIONNEMENT K T VOYELLE
-
-    pos kH c_ -40;
-
-    # MERGE K T S
-
-} kern;
