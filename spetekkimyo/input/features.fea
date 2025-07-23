@@ -1,12 +1,7 @@
 
 
-table GDEF {
-    GlyphClassDef
-        [], # Base glyphs
-        [], # Ligature glyphs
-        [i j h h_ha h_ah i_aj i_ja i_tia], # Mark glyphs
-        []; # Component glyphs
-} GDEF;
+markClass [i iHH] <anchor 0 0> @ACCENTS;
+markClass iM <anchor 0 0> @DUMMY_CLASS;
 
 feature ccmp {
     script DFLT;
@@ -16,7 +11,7 @@ feature ccmp {
 
     # ======================================================== 1 LETTRES FLOTTANTES
 
-    lookup ETAPE_1_FLOTTANTES {  # Décide si les lettres flottantes doivent devenir des diacritiques ou non
+    lookup ETAPE_1_FLOTTANTES {  # Dï¿½cide si les lettres flottantes doivent devenir des diacritiques ou non
 
         sub i' [t] by i_it;
         sub i' [s] by i_sia;
@@ -37,7 +32,7 @@ feature ccmp {
 
     lookup ETAPE_2_CHOIX {  # Choix forme contextuelle de base
 
-        lookupflag IgnoreMarks;
+        lookupflag UseMarkFilteringSet @DUMMY_CLASS;
 
         # Lettre F
 
@@ -69,7 +64,7 @@ feature ccmp {
 
     lookup ETAPE_3_COMPOSANTS {  # Decoupe tous les caracteres en composants
 
-        lookupflag IgnoreMarks;
+        lookupflag UseMarkFilteringSet @DUMMY_CLASS;
 
         # Explicit 2 Parts
 
@@ -90,7 +85,7 @@ feature ccmp {
 
     lookup ETAPE_3_FUSION {  # Fusionne les composants des que possible
 
-        lookupflag IgnoreMarks;
+        lookupflag UseMarkFilteringSet @DUMMY_CLASS;
 
         # AO OA
 
@@ -124,9 +119,9 @@ feature ccmp {
 
     # ======================================================== 4 ESTHETIQUE
 
-    lookup ETAPE_4_ESTHETIQUE {  # Applique les formes purement esthétiques
+    lookup ETAPE_4_ESTHETIQUE {  # Applique les formes purement esthï¿½tiques
 
-        lookupflag IgnoreMarks;
+        lookupflag UseMarkFilteringSet @DUMMY_CLASS;
 
         # HORIZONTAL CONNECTORS
 
@@ -178,7 +173,7 @@ feature ccmp {
 
     # ======================================================== 5 ESTHETIQUE DIACRITIQUE
 
-    lookup ETAPE_5_DESTHETIQUE {  # Applique les formes purement esthétiques aux diacritiques
+    lookup ETAPE_5_DESTHETIQUE {  # Applique les formes purement esthï¿½tiques aux diacritiques
 
     sub i_it' by i_it;
 
