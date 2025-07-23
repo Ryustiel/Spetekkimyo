@@ -1535,7 +1535,7 @@ EndChar
 StartChar: Gdotaccent
 Encoding: 288 288 74
 Width: 1000
-Flags: HWO
+Flags: HW
 LayerCount: 2
 Fore
 SplineSet
