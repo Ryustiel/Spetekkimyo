@@ -1,7 +1,12 @@
 
 
-markClass [i iHH] <anchor 0 0> @ACCENTS;
-markClass iM <anchor 0 0> @DUMMY_CLASS;
+table GDEF {
+    GlyphClassDef
+        [], # Base glyphs
+        [], # Ligature glyphs
+        [j h], # Mark glyphs
+        []; # Component glyphs
+} GDEF;
 
 feature ccmp {
     script DFLT;
@@ -11,18 +16,10 @@ feature ccmp {
 
     # ======================================================== 1 LETTRES FLOTTANTES
 
-    lookup ETAPE_1_FLOTTANTES {  # Dï¿½cide si les lettres flottantes doivent devenir des diacritiques ou non
+    lookup ETAPE_1_FLOTTANTES {  # Décide si les lettres flottantes doivent devenir des diacritiques ou non
 
-        sub i' [t] by i_it;
-        sub i' [s] by i_sia;
-        sub [t] i' [a o e p y bL bR uL uR] by i_tia;
-
-        sub [a o e p y bL bR uL uR] i' [a o e p y bL bR uL uR] by i_aj;
-        sub i' by i_ia;
-        sub j' by i_ja;
-
-        sub h' [a o e p y bL bR uL uR] by h_ha;
-        sub [a o e p y bL bR uL uR] h' by h_ah;
+        sub [a o e p y bL bR uL uR] i' [a o e p y bL bR uL uR] by j;
+        sub n i' n by j;
 
         # TODO : Group diacritics together into a group. They will be positioned later depending on the surounding letters.
 
@@ -32,7 +29,7 @@ feature ccmp {
 
     lookup ETAPE_2_CHOIX {  # Choix forme contextuelle de base
 
-        lookupflag UseMarkFilteringSet @DUMMY_CLASS;
+        lookupflag IgnoreMarks;
 
         # Lettre F
 
@@ -64,7 +61,7 @@ feature ccmp {
 
     lookup ETAPE_3_COMPOSANTS {  # Decoupe tous les caracteres en composants
 
-        lookupflag UseMarkFilteringSet @DUMMY_CLASS;
+        lookupflag IgnoreMarks;
 
         # Explicit 2 Parts
 
@@ -85,7 +82,7 @@ feature ccmp {
 
     lookup ETAPE_3_FUSION {  # Fusionne les composants des que possible
 
-        lookupflag UseMarkFilteringSet @DUMMY_CLASS;
+        lookupflag IgnoreMarks;
 
         # AO OA
 
@@ -119,9 +116,9 @@ feature ccmp {
 
     # ======================================================== 4 ESTHETIQUE
 
-    lookup ETAPE_4_ESTHETIQUE {  # Applique les formes purement esthï¿½tiques
+    lookup ETAPE_4_ESTHETIQUE {  # Applique les formes purement esthétiques
 
-        lookupflag UseMarkFilteringSet @DUMMY_CLASS;
+        lookupflag IgnoreMarks;
 
         # HORIZONTAL CONNECTORS
 
@@ -173,9 +170,10 @@ feature ccmp {
 
     # ======================================================== 5 ESTHETIQUE DIACRITIQUE
 
-    lookup ETAPE_5_DESTHETIQUE {  # Applique les formes purement esthï¿½tiques aux diacritiques
+    lookup ETAPE_5_DESTHETIQUE {  # Applique les formes purement esthétiques aux diacritiques
 
-    sub i_it' by i_it;
+        sub h' [a o e p y bL bR uL uR] by h_ha;
+        sub [a o e p y bL bR uL uR] h' by h_ah;
 
     } ETAPE_5_DESTHETIQUE;
 
@@ -220,10 +218,18 @@ feature ccmp {
 
     lookup ETAPE_7_DKERNING {
 
-        pos [i_ja] <0 800 0 00>;  # x-advance y-advance x-placement y-placement (placement moves the glyph)
+        # VOYELLE I
+
+        pos i [n] <-60 260 0 0>;  # x-advance y-advance x-placement y-placement (placement moves the glyph)
+
+        # VOYELLE J
+
+        pos [s_] [j] <220 0 0 0>;
+        pos j [n] <-160 260 0 0>;
+
+        pos j [a_ o_ _na_ _no_] <100 260 0 0>;
+        pos j [_a _oa_ _ao_] <-180 260 0 0>;
 
     } ETAPE_7_DKERNING;
-
-    # ======================================================== 7 
 
 } ccmp;
