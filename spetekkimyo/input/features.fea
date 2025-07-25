@@ -4,7 +4,7 @@ table GDEF {
     GlyphClassDef
         [], # Base glyphs
         [], # Ligature glyphs
-        [j h], # Mark glyphs
+        [j h _i_ _j _h ji_ hi_], # Mark glyphs
         []; # Component glyphs
 } GDEF;
 
@@ -14,20 +14,52 @@ feature ccmp {
     script latn;
     language dflt required;
 
-    # ======================================================== 1 LETTRES FLOTTANTES
+    ######################################################################### 1 CHOIX CONTEXTUEL
+
+    lookup ETAPE_1_PRE_MERGE {
+
+        sub j i by ji;
+        sub j j by ji;
+        sub h i by hi;
+        sub h j by hi;
+
+        # Lettre S
+
+        sub s i by si_;
+
+    } ETAPE_1_PRE_MERGE;
+
+    #################################
 
     lookup ETAPE_1_FLOTTANTES {  # Décide si les lettres flottantes doivent devenir des diacritiques ou non
 
-        sub [a o e p y bL bR uL uR] i' [a o e p y bL bR uL uR] by j;
-        sub n i' n by j;
+        # IJ positioning
 
-        # TODO : Group diacritics together into a group. They will be positioned later depending on the surounding letters.
+        sub s i' by s _i_;
+
+        sub [a o e p y bL bR uL uR n] i' [a o e p y bL bR uL uR n] by _i_;  # i becomes a diacritic
+        sub i' [n] by _i_;
+
+        sub ji' [n a o e p y bL bR uL uR n] by ji_;  # ji becomes a diacritic if followed by something
+        sub hi' [n a o e p y bL bR uL uR n] by hi_; 
+
+        sub j' [a o e p y bL bR uL uR] by j;
+        sub j' by _j;  # If not followed
+
+        # H positioning
+
+        sub h' [a o e p y bL bR uL uR] by h;  # Check if followed by something
+        sub [a o e p y bL bR uL uR] h' by _h;
+
+        # L positioning
+
+
 
     } ETAPE_1_FLOTTANTES;
 
-    # ======================================================== 2 CHOIX CONTEXTUEL
+    #################################
 
-    lookup ETAPE_2_CHOIX {  # Choix forme contextuelle de base
+    lookup ETAPE_1_NON_FLOTTANTES {  # Choix forme contextuelle de base
 
         lookupflag IgnoreMarks;
 
@@ -55,11 +87,11 @@ feature ccmp {
         sub u' [f] [a e p c u n] by uR;
         sub u' by uL;
 
-    } ETAPE_2_CHOIX;
+    } ETAPE_1_NON_FLOTTANTES;
 
-    # ======================================================== 3 COMPOSITION FUSION
+    ######################################################################### 2 DECOMPOSITION FUSION
 
-    lookup ETAPE_3_COMPOSANTS {  # Decoupe tous les caracteres en composants
+    lookup ETAPE_2_DECOMPOSITION {  # Decoupe tous les caracteres en composants
 
         lookupflag IgnoreMarks;
 
@@ -73,14 +105,20 @@ feature ccmp {
         sub c by c_ _c;
         sub s by s_ _s;
 
+        # Implicit 2 Parts
+
+        sub si_ by si_ _s;
+
         # B
 
         sub bR by o_ _b;
         sub bL by b_ _o;
 
-    } ETAPE_3_COMPOSANTS;
+    } ETAPE_2_DECOMPOSITION;
 
-    lookup ETAPE_3_FUSION {  # Fusionne les composants des que possible
+    #################################
+
+    lookup ETAPE_2_FUSION {  # Fusionne les composants des que possible
 
         lookupflag IgnoreMarks;
 
@@ -112,11 +150,11 @@ feature ccmp {
         sub t b_ by tb_;
         sub t c_ by tc_;
 
-    } ETAPE_3_FUSION;
+    } ETAPE_2_FUSION;
 
-    # ======================================================== 4 ESTHETIQUE
+    ######################################################################### 3 ESTHETIQUE
 
-    lookup ETAPE_4_ESTHETIQUE {  # Applique les formes purement esthétiques
+    lookup ETAPE_3_ESTHETIQUE {  # Applique les formes purement esthétiques
 
         lookupflag IgnoreMarks;
 
@@ -132,7 +170,7 @@ feature ccmp {
         sub _o' [n fH] by _on_;
 
         sub _p' [n fL] by _pn_;
-        sub _e' [n fL s_] by _en_;
+        sub _e' [n fL s_ si_] by _en_;
         sub _b' [n fH] by _bn_;
 
         # U FORMS
@@ -150,7 +188,7 @@ feature ccmp {
 
         # B ENDING FORMS
 
-        sub [fL] b_' _o' [a_ o_ s_] by b_; # Ignoring certain combinations
+        sub [fL] b_' _o' [a_ o_ s_ si_] by b_; # Ignoring certain combinations
         sub _e' b_' _o' by b_ending;
         sub _o o_' _b' by b_ending;  # _b implies it is not connected to the next letter
         # TODO : Mix b_ending to bs, bn, bf, bt, bk depending on the consonnant that follows
@@ -166,32 +204,24 @@ feature ccmp {
         sub _p' s_' _s' by ps_ending;
         sub _y' s_' _s' by ys_ending;
 
-    } ETAPE_4_ESTHETIQUE;
+    } ETAPE_3_ESTHETIQUE;
 
-    # ======================================================== 5 ESTHETIQUE DIACRITIQUE
+    ######################################################################### 4 KERNING
 
-    lookup ETAPE_5_DESTHETIQUE {  # Applique les formes purement esthétiques aux diacritiques
-
-        sub h' [a o e p y bL bR uL uR] by h_ha;
-        sub [a o e p y bL bR uL uR] h' by h_ah;
-
-    } ETAPE_5_DESTHETIQUE;
-
-    # ======================================================== 6 KERNING
-
-    lookup ETAPE_6_KERNING {
+    lookup ETAPE_4_KERNING {
 
         lookupflag IgnoreMarks;
 
         # MERGE VOYELLE -80
 
         pos [_a _o] [a_ o_] -80;
+        pos _p [a_ o_] -90;
         pos _o b_ending -5;
 
         # VOYELLE U
 
         pos tuR_ [uR uR_before_n uR_before_high] -160;
-        pos s_ [uR uR_before_n uR_before_high] -120;
+        pos [s_ si_] [uR uR_before_n uR_before_high] -120;
 
         # MERGE VOYELLE S -80
 
@@ -212,24 +242,48 @@ feature ccmp {
 
         # MERGE K T S
 
-    } ETAPE_6_KERNING;
 
-    # ======================================================== 7 DIACRITIC KERNING
 
-    lookup ETAPE_7_DKERNING {
+    } ETAPE_4_KERNING;
+
+    #################################
+
+    lookup ETAPE_4_DIACRITIC_KERNING {
+
+        # POSITIONNEMENT IJHL NON DIACRITIQUES
+
+        pos i [ts_ ta_] <-80 480 0 0>;
+        pos i [s_ si_] <-80 420 0 0>;
+        pos [i ji] [a_ o_] <-80 0 0 0>;
 
         # VOYELLE I
 
-        pos i [n] <-60 260 0 0>;  # x-advance y-advance x-placement y-placement (placement moves the glyph)
+        pos _i_ [n] <-260 360 0 0>;  # x-advance y-advance x-placement y-placement (placement moves the glyph)
+        pos _i_ [a_ o_ _na_ _no_ _ao_ _oa_ _a _o] <-290 -260 0 0>;
 
-        # VOYELLE J
+        # FLOTTANTES JHL
 
-        pos [s_] [j] <220 0 0 0>;
-        pos j [n] <-160 260 0 0>;
+        # pos [s_ si_] [j h] <180 0 0 0>;
+        pos [j h ji_ hi_] [n] <-100 360 0 0>;
+        pos [j h ji_ hi_] [a_ o_ _na_ _no_] <180 360 0 0>;
+        pos [j h ji_ hi_] [_a _o _oa_ _ao_] <-100 360 0 0>;
 
-        pos j [a_ o_ _na_ _no_] <100 260 0 0>;
-        pos j [_a _oa_ _ao_] <-180 260 0 0>;
+    } ETAPE_4_DIACRITIC_KERNING;
 
-    } ETAPE_7_DKERNING;
+    #################################
+
+    lookup ETAPE_4_CONSTANT_KERNING {
+
+        # POSITIONNEMENT IJHL
+
+        pos [_j _h] <-375 -260 0 0>;
+        pos [i ji hi] <60 100 40 0>;
+
+        # POSITIONNEMENT S
+
+        pos s_ <0 0 -80 0>;
+        pos si_ <0 0 -140 0>;
+
+    } ETAPE_4_CONSTANT_KERNING;
 
 } ccmp;
