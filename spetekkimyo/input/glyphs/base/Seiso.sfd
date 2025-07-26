@@ -22,7 +22,7 @@ OS2Version: 4
 OS2_WeightWidthSlopeOnly: 0
 OS2_UseTypoMetrics: 1
 CreationTime: 1741903524
-ModificationTime: 1753477092
+ModificationTime: 1753534515
 PfmFamily: 17
 TTFWeight: 400
 TTFWidth: 5
@@ -75,7 +75,7 @@ StdVW 5 [121]
 StemSnapH 13 [105 106 114]
 StemSnapV 21 [121 123 124 261 265]
 EndPrivate
-BeginChars: 65537 83
+BeginChars: 65537 89
 
 StartChar: .notdef
 Encoding: 65536 -1 0
@@ -384,8 +384,8 @@ Fore
 SplineSet
 550 0 m 1
  550 80 l 1
- 0 80 l 1
- 0 0 l 1
+ 0 80 l 5
+ 0 0 l 5
  550 0 l 1
 EndSplineSet
 EndChar
@@ -726,8 +726,8 @@ SplineSet
 0 0 m 1
  820 0 l 1
  820 80 l 1
- 210 80 l 1
- 830 730 l 1
+ 200 80 l 5
+ 820 730 l 1
  710 730 l 1
  0 0 l 1
 EndSplineSet
@@ -741,9 +741,9 @@ LayerCount: 2
 Fore
 SplineSet
 80 0 m 1
- -30 0 l 1
- 380 650 l 1
- 0 650 l 5
+ -20 0 l 1
+ 400 650 l 1
+ 0 650 l 1
  0 730 l 25
  550 730 l 1
  80 0 l 1
@@ -779,8 +779,8 @@ SplineSet
 0 0 m 1
  450 0 l 1
  450 80 l 1
- 210 80 l 1
- 830 730 l 1
+ 200 80 l 1
+ 820 730 l 1
  710 730 l 1
  0 0 l 1
 EndSplineSet
@@ -1581,7 +1581,7 @@ SplineSet
  300 0 l 1
  300 0 50 -0.001953125 50 274 c 0
  50 438 260 550 260 550 c 1
- 0 550 l 1
+ 0 550 l 5
  0 610 l 25
 EndSplineSet
 EndChar
@@ -1723,7 +1723,7 @@ EndChar
 StartChar: hcircumflex
 Encoding: 293 293 82
 Width: 1000
-Flags: HWO
+Flags: HW
 LayerCount: 2
 Fore
 SplineSet
@@ -1742,6 +1742,103 @@ SplineSet
  80 480 l 1
  0 480 l 1
  0 320 l 1
+EndSplineSet
+EndChar
+
+StartChar: yacute
+Encoding: 253 253 83
+Width: 1000
+Flags: HW
+LayerCount: 2
+Fore
+SplineSet
+500 0 m 5
+ 500 60 l 5
+ 50 60 l 5
+ 50 0 l 5
+ 500 0 l 5
+EndSplineSet
+EndChar
+
+StartChar: udieresis
+Encoding: 252 252 84
+Width: 1000
+Flags: HW
+LayerCount: 2
+Fore
+SplineSet
+550 0 m 1
+ 550 60 l 1
+ 50 60 l 1
+ 50 0 l 1
+ 550 0 l 1
+EndSplineSet
+EndChar
+
+StartChar: thorn
+Encoding: 254 254 85
+Width: 1000
+Flags: HW
+LayerCount: 2
+Fore
+SplineSet
+550 0 m 1
+ 550 60 l 1
+ 0 60 l 1
+ 0 0 l 1
+ 550 0 l 1
+EndSplineSet
+EndChar
+
+StartChar: ucircumflex
+Encoding: 251 251 86
+Width: 1000
+Flags: HWO
+LayerCount: 2
+Fore
+SplineSet
+550 0 m 5
+ 550 60 l 5
+ 70 60 l 1
+ 70 0 l 1
+ 550 0 l 5
+EndSplineSet
+EndChar
+
+StartChar: uacute
+Encoding: 250 250 87
+Width: 1000
+Flags: HW
+LayerCount: 2
+Fore
+SplineSet
+500 0 m 1
+ 500 60 l 1
+ 0 60 l 1
+ 0 0 l 1
+ 500 0 l 1
+EndSplineSet
+EndChar
+
+StartChar: acircumflex
+Encoding: 226 226 88
+Width: 1000
+Flags: HW
+LayerCount: 2
+Fore
+SplineSet
+440 730 m 1
+ 0 730 l 0
+ 0 670 l 0
+ 440 670 l 1
+ 440 730 l 1
+80 0 m 1
+ -10 0 l 1
+ 410 550 l 1
+ 0 550 l 1
+ 0 610 l 25
+ 550 610 l 1
+ 80 0 l 1
 EndSplineSet
 EndChar
 EndChars

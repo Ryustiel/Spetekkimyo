@@ -4,7 +4,7 @@ table GDEF {
     GlyphClassDef
         [], # Base glyphs
         [], # Ligature glyphs
-        [j h _i_ _j _h ji_ hi_], # Mark glyphs
+        [j h _i_ _j _h ji_ hi_ la_ lo_ _al _ol _sla_ _slp_ _bRl _bLl lbR_ lbL_], # Mark glyphs
         []; # Component glyphs
 } GDEF;
 
@@ -15,6 +15,14 @@ feature ccmp {
     language dflt required;
 
     ######################################################################### 1 CHOIX CONTEXTUEL
+
+    lookup ETAPE_1_REPLACEMENTS {
+
+        sub m by n;
+
+    } ETAPE_1_REPLACEMENTS;
+
+    ################################
 
     lookup ETAPE_1_PRE_MERGE {
 
@@ -53,7 +61,18 @@ feature ccmp {
 
         # L positioning
 
+        sub [s t d] l' [a e bR uR] by _sla_;  # s t k precedence
+        sub [s t d] l' [bL uL p] by _slp_;
 
+        sub l' [a e] by la_;  # If followed by something
+        sub l' [o y] by lo_;
+        sub l' [bL uL p] by lbL_;
+        sub l' [bR uR] by lbR_;
+
+        sub [a e] l' by _al;  # If not followed
+        sub [o y] l' by _ol;
+        sub [bL uL p] l' by _bLl;
+        sub [bR uR] l' by _bRl;
 
     } ETAPE_1_FLOTTANTES;
 
@@ -65,18 +84,18 @@ feature ccmp {
 
         # Lettre F
 
-        sub [a p] f' by fH;
-        sub [o e] f' by fL;
+        sub [a p] f' by fa_;
+        sub [o e] f' by fo_;
 
-        sub f' [a c u] by fH;
-        sub k' [a c u b] by kH;
+        sub f' [a c u] by fa_;
+        sub k' [a c u b] by ka_;
 
-        sub f' [o b] by fL;  # This isnt optimal but it's easier to read
-        sub k' [o b] by kL;
+        sub f' [o b] by fo_;  # This isnt optimal but it's easier to read
+        sub k' [o b] by ko_;
 
         # Lettre B
 
-        sub [o n fL] b' by bR;
+        sub [o n fo_] b' by bR;
         sub b' by bL;
 
         # Lettre U
@@ -160,35 +179,35 @@ feature ccmp {
 
         # HORIZONTAL CONNECTORS
 
-        sub [n fL] a_' by _na_;
-        sub [n fL] c_' by _nc_;
-        sub [n fH] o_' by _no_;
+        sub [n fo_] a_' by _na_;
+        sub [n fo_] c_' by _nc_;
+        sub [n fa_] o_' by _no_;
         sub [_a _p] b_' by _bn_;
 
-        sub _c' [n fL] by _cn_;
-        sub _a' [n fL] by _an_;
-        sub _o' [n fH] by _on_;
+        sub _c' [n fo_] by _cn_;
+        sub _a' [n fo_] by _an_;
+        sub _o' [n fa_] by _on_;
 
-        sub _p' [n fL] by _pn_;
-        sub _e' [n fL s_ si_] by _en_;
-        sub _b' [n fH] by _bn_;
+        sub _p' [n fo_] by _pn_;
+        sub _e' [n fo_ s_ si_] by _en_;
+        sub _b' [n fa_] by _bn_;
 
         # U FORMS
 
-        sub kH uR' by uR_after_high;
+        sub ka_ uR' by uR_after_high;
         sub _s uR' by uR_after_high;
 
         sub n uL' by uL_after_n;
-        sub [kH fH] uL' by uL_after_high;
+        sub [ka_ fa_] uL' by uL_after_high;
 
         sub uR' n by uR_before_n;
-        sub uR' [fH] by uR_before_high;
+        sub uR' [fa_] by uR_before_high;
 
         sub t' uR by tuR_;
 
         # B ENDING FORMS
 
-        sub [fL] b_' _o' [a_ o_ s_ si_] by b_; # Ignoring certain combinations
+        sub [fo_] b_' _o' [a_ o_ s_ si_] by b_; # Ignoring certain combinations
         sub _e' b_' _o' by b_ending;
         sub _o o_' _b' by b_ending;  # _b implies it is not connected to the next letter
         # TODO : Mix b_ending to bs, bn, bf, bt, bk depending on the consonnant that follows
@@ -196,8 +215,8 @@ feature ccmp {
 
         # S ENDING FORMS
 
-        sub [_a n fH] s_' _s' by s_after_high;
-        sub [fL _en_] s_' _s' by s_after_low;
+        sub [_a n fa_] s_' _s' by s_after_high;
+        sub [fo_ _en_] s_' _s' by s_after_low;
 
         sub _o' s_' _s' by os_ending;
         sub _c' s_' _s' by cs_ending;
@@ -227,18 +246,18 @@ feature ccmp {
 
         pos [_s] [o_] -80;
         pos _a s_after_high -80;
-        pos [fL _en_] s_after_low -80;
+        pos [fo_ _en_] s_after_low -80;
 
-        pos [n fH] s_after_high -5;
+        pos [n fa_] s_after_high -5;
 
         # MERGE VOYELLE F N
 
-        pos [_a _o _p _an_ _on_ _cn_ _pn_ _bn_ _en_] [fH fL n _bn_] -20;
-        pos [fH fL n] [a_ o_ _na_ _no_ _nc_] -20;
+        pos [_a _o _p _an_ _on_ _cn_ _pn_ _bn_ _en_] [fa_ fo_ n _bn_] -20;
+        pos [fa_ fo_ n] [a_ o_ _na_ _no_ _nc_] -20;
 
         # POSITIONNEMENT K T VOYELLE
 
-        pos kH c_ -40;
+        pos ka_ c_ -40;
 
         # MERGE K T S
 
@@ -261,7 +280,7 @@ feature ccmp {
         pos _i_ [n] <-260 360 0 0>;  # x-advance y-advance x-placement y-placement (placement moves the glyph)
         pos _i_ [a_ o_ _na_ _no_ _ao_ _oa_ _a _o] <-290 -260 0 0>;
 
-        # FLOTTANTES JHL
+        # FLOTTANTES JH
 
         # pos [s_ si_] [j h] <180 0 0 0>;
         pos [j h ji_ hi_] [n] <-100 360 0 0>;
@@ -274,15 +293,21 @@ feature ccmp {
 
     lookup ETAPE_4_CONSTANT_KERNING {
 
-        # POSITIONNEMENT IJHL
-
-        pos [_j _h] <-375 -260 0 0>;
-        pos [i ji hi] <60 100 40 0>;
-
         # POSITIONNEMENT S
 
         pos s_ <0 0 -80 0>;
         pos si_ <0 0 -140 0>;
+
+        # POSITIONNEMENT IJH
+
+        pos [_j _h] <-375 -260 0 0>;
+        pos [i ji hi] <60 100 40 0>;
+
+        # POS L
+
+        pos [la_ lo_ lbR_ lbL_] <0 420 0 0>;
+        pos [_slp_ _sla_] <-260 420 0 0>;
+        pos [_al _ol] <-550 -140 0 0>;
 
     } ETAPE_4_CONSTANT_KERNING;
 
