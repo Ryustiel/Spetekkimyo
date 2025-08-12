@@ -39,6 +39,38 @@ feature ccmp {
 
     #################################
 
+    lookup ETAPE_1_NON_FLOTTANTES {  # Choix forme contextuelle de base
+
+        lookupflag IgnoreMarks;
+
+        # Lettre F
+
+        sub [a p] f' by fa_;
+        sub [o e] f' by fo_;
+
+        sub f' [a c u] by fa_;
+        sub k' [a c u b] by ka_;
+
+        sub f' [o b] by fo_;  # This isnt optimal but it's easier to read
+        sub k' [o b] by ko_;
+
+        # Lettre B
+
+        sub [o n fo_] b' by bR;
+        sub b' by bL;
+
+        # Lettre U
+
+        sub [t s] u' by uR;  # Ignore next letter
+        sub [n] u' by uL;  
+        sub u' [a e p o b c y n] by uR;
+        sub u' [f] [a e p c u n] by uR;
+        sub u' by uL;
+
+    } ETAPE_1_NON_FLOTTANTES;
+
+    #################################
+
     lookup ETAPE_1_FLOTTANTES {  # Décide si les lettres flottantes doivent devenir des diacritiques ou non
 
         # IJ positioning
@@ -75,38 +107,6 @@ feature ccmp {
         sub [bR uR] l' by _bRl;
 
     } ETAPE_1_FLOTTANTES;
-
-    #################################
-
-    lookup ETAPE_1_NON_FLOTTANTES {  # Choix forme contextuelle de base
-
-        lookupflag IgnoreMarks;
-
-        # Lettre F
-
-        sub [a p] f' by fa_;
-        sub [o e] f' by fo_;
-
-        sub f' [a c u] by fa_;
-        sub k' [a c u b] by ka_;
-
-        sub f' [o b] by fo_;  # This isnt optimal but it's easier to read
-        sub k' [o b] by ko_;
-
-        # Lettre B
-
-        sub [o n fo_] b' by bR;
-        sub b' by bL;
-
-        # Lettre U
-
-        sub [t s] u' by uR;  # Ignore next letter
-        sub [n] u' by uL;  
-        sub u' [a e p o b c y n] by uR;
-        sub u' [f] [a e p c u n] by uR;
-        sub u' by uL;
-
-    } ETAPE_1_NON_FLOTTANTES;
 
     ######################################################################### 2 DECOMPOSITION FUSION
 
@@ -305,9 +305,12 @@ feature ccmp {
 
         # POS L
 
-        pos [la_ lo_ lbR_ lbL_] <0 420 0 0>;
+        pos [la_ lo_ lbR_ lbL_ lbR_ lbL_] <0 420 0 0>;
         pos [_slp_ _sla_] <-260 420 0 0>;
         pos [_al _ol] <-550 -140 0 0>;
+        pos [_bRl _bLl] <-500 -140 0 0>;
+
+        pos l <0 160 0 0>;
 
     } ETAPE_4_CONSTANT_KERNING;
 
