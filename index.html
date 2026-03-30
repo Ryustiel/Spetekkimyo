@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seiso — Grammaire amicale et écriture contextuelle</title>
+  <style>
+    /* Fallback @font-face; une version avec bust de cache est injectée via JS au chargement */
+    @font-face {
+      font-family: 'SeisoTest';
+      src: url('./output/test.otf') format('opentype');
+      font-display: swap;
+    }
+    :root {
+      --bg: #0f1220;
+      --fg: #e7ecf1;
+      --muted: #c2c9d2;
+      --accent: #7dd3fc;
+      --accent2: #a78bfa;
+      --chip: #1e2338;
+      --card: #161a2e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: var(--bg);
+      color: var(--fg);
+      font: 16px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1,h2,h3 { line-height: 1.2; margin: 0 0 12px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 22px; margin-top: 28px; }
+    p { margin: 0 0 12px; max-width: 75ch; }
+    small, .muted { color: var(--muted); }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .card {
+      background: var(--card);
+      border: 1px solid #222646;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin: 16px 0;
+    }
+    .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .controls > * { margin: 4px 0; }
+    .btn {
+      background: var(--chip);
+      border: 1px solid #263056;
+      color: var(--fg);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn:hover { border-color: #3a4782; }
+    input[type="range"] { width: 200px; }
+    label { font-size: 13px; color: var(--muted); margin-right:6px; }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 1px 6px; background: var(--chip); border:1px solid #2a335a; border-radius: 6px; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin: 8px 0; }
+    .chip { background: var(--chip); border:1px solid #2a335a; padding:4px 8px; border-radius:999px; font-size:12px; color: var(--muted); }
+    .seiso {
+      font-family: 'SeisoTest', system-ui, sans-serif;
+      font-feature-settings: 'rlig' 1, 'liga' 1, 'ccmp' 1;
+      -webkit-font-smoothing: antialiased;
+      font-size: 64px;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+    .viewer {
+      background: #0b0f1e;
+      border:1px solid #222646;
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 120px;
+      overflow:auto;
+    }
+    .viewer .layer { background: rgba(125,211,252,0.12); border:1px dashed rgba(125,211,252,0.5); border-radius:8px; padding: 2px 6px; margin: 0 6px 6px 0; display: inline-block; }
+    .viewer .weak { border-style: dotted; background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.5); }
+    .sample { display:flex; flex-wrap:wrap; gap:8px; }
+    .sample button { font-size: 22px; padding: 8px 10px; }
+    .row { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+    .input {
+      width: 100%;
+      background: #0b0f1e;
+      color: var(--fg);
+      border:1px solid #222646;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 18px;
+    }
+    kbd { font-family: ui-monospace, Consolas, monospace; background: #121733; border: 1px solid #2a335a; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
+    .footer { margin-top: 24px; font-size: 12px; color: var(--muted); }
+    .toggle { display:inline-flex; gap:8px; align-items:center; }
+    .badge { padding:2px 6px; font-size:11px; border-radius:6px; border:1px solid #2a335a; background: var(--chip); color: var(--muted); }
+  </style>
+  <script>
+    // Injecte un @font-face avec paramètre de cache pour refléter les mises à jour de output/test.otf
+    (function() {
+      var v = Date.now();
+      var style = document.createElement('style');
+      style.textContent = "@font-face{font-family:'SeisoTest';src:url('./output/test.otf?v="+v+"') format('opentype');font-display:swap;}";
+      document.head.appendChild(style);
+    })();
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Seiso — petite grammaire amicale et aperçu de l'écriture</h1>
+      <p class="muted">Cette page utilise la police générée par le notebook (<span class="code">output/test.otf</span>) et vous propose des explications avec des exemples interactifs.</p>
+    </header>
+
+    <section class="card">
+      <h2>Seiso en deux mots</h2>
+      <p>Seiso s'appuie sur deux grandes familles de morphèmes qui s'attirent et se complètent pour construire le sens&nbsp;: les <strong>initiaux</strong> (<em>kuetek</em>, de <em>kue</em> «&nbsp;précis&nbsp;»), et les <strong>finaux</strong> (<em>tautek</em>, de <em>tau</em> «&nbsp;rangé&nbsp;»). Autour d’eux gravitent des <strong>préfixes</strong> (<span class="code">s</span>, <span class="code">f</span>, <span class="code">i</span>, <span class="code">o</span>) et des <strong>suffixes</strong> (<span class="code">b</span>, <span class="code">p</span>, <span class="code">s</span>, <span class="code">h</span>, <span class="code">+</span>, <span class="code">j+</span>).</p>
+      <p>Le signe <span class="code">+</span> représente la <strong>réduplication de la dernière voyelle</strong> de la syllabe précédente. Les symboles suivent l’IPA, avec deux notations utiles&nbsp;: <span class="code">b</span> pour <em>o</em> ouvert (comme «&nbsp;pomme&nbsp;») et <span class="code">p</span> pour le son de «&nbsp;œu&nbsp;» dans «&nbsp;œuf&nbsp;».</p>
+      <div class="chips">
+        <span class="chip">Initiaux = amorce sémantique</span>
+        <span class="chip">Finaux = rendu / affordance</span>
+        <span class="chip">Préfixes = implication</span>
+        <span class="chip">Suffixes = modalité vécue</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Construire une <em>couche</em>, bâtir un <em>complexe</em></h2>
+      <p>On compose le sens par <strong>couches</strong>, qui s’imbriquent en <strong>complexes</strong> (un peu comme des poupées russes). Une couche suit ce patron&nbsp;: <span class="code">INITIAL? INNER_LAYER? FINAL+</span>. Autrement dit, <em>un initial optionnel</em>, <em>éventuellement une couche interne</em>, puis <em>un ou plusieurs finaux</em>.</p>
+      <p>Exemples didactiques&nbsp;:</p>
+      <div class="viewer seiso" aria-label="Exemples de couches et complexes">
+        <span class="layer" title="couche complète">tau tek</span>
+        <span class="layer" title="couche minimale (final seul)">tek</span>
+        <span class="layer" title="complexe de deux couches"><span>tau tau teo tek</span></span>
+      </div>
+      <p>À l’oral et à l’écrit, une <strong>paire initial–final</strong> peut former une unité de sens distincte de ses composants pris séparément (par ex.&nbsp;<em>tauteo</em> «&nbsp;réserve de denrées&nbsp;» vs <em>tauki</em> «&nbsp;d’apparence rangé&nbsp;»).</p>
+      <p class="muted">Dans la pratique, la plupart des suites peuvent être <em>segmentées algorithmiquement</em> en se basant sur le nombre d’initiaux, mais l’ambiguïté existe lorsqu’il y a plusieurs finaux de suite&nbsp;: le contexte et l’usage tranchent.</p>
+    </section>
+
+    <section class="card">
+      <h2>Préfixes et suffixes, l’angle de vue</h2>
+      <p>Les <strong>préfixes</strong> structurent le <em>rôle</em> d’un élément dans la scène (acteur, objectif, point de convergence, interaction), tandis que les <strong>suffixes</strong> donnent la <em>modalité expérientielle</em> (constaté, attendu, imaginé…). C’est l’<strong>architecture du complexe</strong> qui peint la scène&nbsp;: la hiérarchie des couches et le choix des initiaux définissent les propriétés des entités, et les finaux décrivent des affordances et des actions.</p>
+      <p>Par exemple, pour exprimer «&nbsp;voir&nbsp;», on encode l’objet perçu dans un complexe qui reçoit un final <span class="code">ki</span>, on préfixe l’agent avec <span class="code">o‑</span>, et on peut infixer le complexe dans <span class="code">tseelamki</span> (≈ «&nbsp;a l’air d’avoir vu&nbsp;»). Le détail relève de la syntaxe et de l’usage.</p>
+    </section>
+
+    <section class="card">
+      <h2>Réduction des couches</h2>
+      <p>Une couche peut être <strong>réduite</strong> en supprimant certains finaux lorsque le contexte suffit&nbsp;: <span class="code">seilamki</span> → <span class="code">sei’ki</span> → <span class="code">sei</span>. Cette réduction est fréquente (expressions figées, économie discursive) mais <em>fait perdre de l’information</em>&nbsp;; on l’emploie avec mesure.</p>
+      <div class="viewer seiso" id="reduction">
+        <div>seilamki</div>
+        <div>sei’ki</div>
+        <div>sei</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Espaces, apostrophes et rythme</h2>
+      <p>On met des <strong>espaces</strong> entre les couches d’un complexe et entre les complexes eux‑mêmes. Les <strong>complexes simples</strong> et les <strong>couches réduites</strong> s’écrivent souvent <em>sans espace</em>.</p>
+      <p>Deux couches (ou une paire initial–final réduite) peuvent être séparées par une <strong>apostrophe</strong> (<span class="code">’</span>)&nbsp;: c’est une <em>liaison faible</em>, descriptive, là où la juxtaposition sans apostrophe forme une unité serrée. À l’oral, on le percevrait comme un glissement tonal.</p>
+      <div class="viewer seiso">
+        <span class="layer">nei sei lam ki na</span>
+        <span class="weak layer">nei sei na</span>
+        <span class="layer">sei’ki</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Spécificités de l’écriture Seiso (dans cette police)</h2>
+      <p>La police OTF fournie est <strong>fortement contextuelle</strong>. Elle exploite des substitutions et positionnements OpenType pour offrir une écriture fluide et lisible&nbsp;:</p>
+      <ul>
+        <li><strong>Formes contextuelles et ligatures.</strong> Des paires comme <span class="code">k+s</span> et <span class="code">t+s</span> fusionnent en traits uniques (<em>ks</em>, <em>ts</em>), et les voyelles se combinent avec les consonnes voisines pour créer des <em>liaisons horizontales</em>.</li>
+        <li><strong>Lettres «&nbsp;flottantes&nbsp;» en diacritiques.</strong> Selon le contexte, <span class="code">i</span>, <span class="code">j</span> et <span class="code">h</span> se posent au‑dessus comme des diacritiques, libérant la ligne de base. Le placement fin est géré par des tables d’ancrage et du crénage dédiés.</li>
+        <li><strong>Formes directionnelles.</strong> La lettre <span class="code">u</span> existe en variantes <em>gauche/droite</em> pour s’orienter vers la lettre suivante (<span class="code">uL</span>/<span class="code">uR</span>), notamment autour de <span class="code">n</span> et des consonnes «&nbsp;hautes&nbsp;».</li>
+        <li><strong>Finales soignées.</strong> Certaines consonnes comme <span class="code">b</span> et <span class="code">s</span> adoptent des <em>formes finales</em> harmonisées selon la voyelle qui précède, assurant une terminaison nette du mot.</li>
+        <li><strong>Crénage et jonctions horizontales.</strong> De nombreux ajustements garantissent la continuité visuelle des traits (<span class="code">_na_</span>, <span class="code">_on_</span>, etc.), avec un interlettrage calibré pour les paires fréquentes et les diacritiques.</li>
+      </ul>
+      <p class="muted">Techniquement, ces mécanismes s’appuient sur des lookups OpenType (composition/décomposition, substitutions contextuelles, positionnements des marques) définis lors de la génération de <span class="code">test.otf</span>.</p>
+    </section>
+
+    <section class="card">
+      <h2>Essayez vous‑même</h2>
+      <div class="controls">
+        <label for="input">Texte Seiso</label>
+        <input class="input" id="input" placeholder="Tapez du Seiso ici…" spellcheck="false" />
+      </div>
+      <div class="controls" style="margin-top:8px">
+        <label for="size">Taille</label>
+        <input type="range" id="size" min="24" max="160" value="64">
+        <span id="sizeVal" class="badge">64 px</span>
+        <span class="toggle">
+          <input type="checkbox" id="fallback">
+          <label for="fallback">Comparer sans la police</label>
+        </span>
+        <button class="btn" id="reload">Recharger la police</button>
+      </div>
+      <div class="viewer seiso" id="output" style="margin-top:12px">kul ul bl — pb</div>
+      <div class="sample" style="margin-top:8px">
+        <button class="btn seiso" data-sample="tau tek">tau tek</button>
+        <button class="btn seiso" data-sample="tauteo">tauteo</button>
+        <button class="btn seiso" data-sample="tau tau teo tek">tau tau teo tek</button>
+        <button class="btn seiso" data-sample="seilamki">seilamki</button>
+        <button class="btn seiso" data-sample="sei’ki">sei’ki</button>
+        <button class="btn seiso" data-sample="o-kue ki">o-kue ki</button>
+      </div>
+      <p class="muted">Astuce&nbsp;: appuyez sur <kbd>Ctrl</kbd>+<kbd>Enter</kbd> pour copier le texte d’entrée dans l’aperçu.</p>
+    </section>
+
+    <footer class="footer">
+      <p>Police utilisée&nbsp;: <span class="code">./output/test.otf</span>. Si vous régénérez la police depuis le notebook, cliquez sur «&nbsp;Recharger la police&nbsp;» ou rechargez la page.</p>
+    </footer>
+  </div>
+
+  <script>
+    (function(){
+      const input = document.getElementById('input');
+      const output = document.getElementById('output');
+      const size = document.getElementById('size');
+      const sizeVal = document.getElementById('sizeVal');
+      const fallback = document.getElementById('fallback');
+      const reload = document.getElementById('reload');
+
+      function applySize(){
+        const v = size.value;
+        output.style.fontSize = v + 'px';
+        sizeVal.textContent = v + ' px';
+      }
+      size.addEventListener('input', applySize);
+      applySize();
+
+      input.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          output.textContent = input.value || ' ';
+        }
+      });
+
+      // Live transcription: update preview as the user types in the (bottom) input field
+      input.addEventListener('input', () => {
+        // keep the preview in sync in real time; use a single space when empty to preserve layout
+        output.textContent = input.value || ' ';
+      });
+
+      // Initialize preview from any prefilled input value on load
+      if (input.value) output.textContent = input.value;
+
+      document.querySelectorAll('[data-sample]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const v = btn.getAttribute('data-sample');
+          input.value = v;
+          output.textContent = v;
+        });
+      });
+
+      fallback.addEventListener('change', () => {
+        output.style.fontFamily = fallback.checked ? 'system-ui, sans-serif' : "'SeisoTest', system-ui, sans-serif";
+      });
+
+      reload.addEventListener('click', () => {
+        // Cache-bust en remplaçant la source @font-face
+        const v = Date.now();
+        const style = document.createElement('style');
+        style.textContent = "@font-face{font-family:'SeisoTest';src:url('./output/test.otf?v="+v+"') format('opentype');font-display:swap;}";
+        document.head.appendChild(style);
+        // Petit reflow pour stabiliser le rendu
+        output.style.transform = 'translateZ(0)';
+        setTimeout(()=>{output.style.transform='';},50);
+      });
+    })();
+  </script>
+</body>
+</html>
