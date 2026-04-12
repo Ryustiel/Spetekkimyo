@@ -1,0 +1,32 @@
+
+Celles là sont quelques idées ; feature_logic contient des idées plus "actuelles" et travaillées.
+
+PREMIERE passe CODAS ONSETS :
+
+On parcourt la séquence à la recherche de codas valides : une coda précède un noyau (donc doit y avoir des voyelles inlines valides ou "i") 
+et a les règles décrites dans le document.
+
+Les codas flottantes ne peuvent pas être suivies d'une autre voyelle sinon ce sont plus des codas.
+
+On regarde aussi les règles avec les onsets et on essaie de voir quelles consonnes sont dans une bonne séquence pour former un onset (toutes les combinaisons correctes)
+
+SECONDE passe ISOLATED :
+
+Toutes les autres lettres passent en format isolé ; on choisit si "i" sera une flottante ou un préfixe.
+
+TROISIEME passe FORMES JOINTES :
+
+On traverse toutes les combinaisons et on transforme toutes les lettres INLINE VOWELS + ONSETS + CODAS (à l'exception des flottantes) en leurs formes jointes.
+Pour les lettres qui n'ont pas besoin de forme jointe et à la place leur changement repose sur un positioning (par exemple pour "i" préfixe), on les laisse dans leur forme actuelle.
+
+QUATRIEME passe POSITIONING :
+
+Ajuste la hauteur des lettres en fonction de leur statut, complémentaire à la passe de forme jointe.
+
+CINQUIEME passe FORMES JOINTES DIACRITIQUES :
+
+Pour "l" essentiellement.
+
+SIXIEME passe POSITIONING ACCENTS : 
+
+Positionnement d'acents cumulés qui se suivent genre j et h. 5 et 6 sont un mirror de 3 et 4, mais pour les diacritiques.

@@ -1,0 +1,267 @@
+## Généralités
+
+Fonctionne par Bloc de largeur variable.  
+Avec règle de Jonction de blocs en fonction de caractéristiques déterminées.
+
+Structure de Syllabe \= Prefix \+ Onset \+ Pseudo Noyau \+ Coda
+
+Les préfixes “s” et “f” ont leur touche propre sur le clavier, parce qu’ils ne s’attachent pas comme les autres lettres.  
+Les suffixes “+” et “‘“ ont aussi leur propre lettre.
+
+Tous les suffixes grammaticaux de Seiso sont codés comme l’emplacement coda du bloc?
+
+\=== plus de problème de séparation.
+
+Taper la lettre m ou n conduit au même résultat. (alias l’un de l’autre)
+
+Seiso est une conlang, cette police permet à partir d’un input en alphabet latin de reconstruire le comportement du script fictif qui va avec cette conlang.
+
+## Attribution de Rôle
+
+Avant les autres règles de grammaire, on applique une première passe dans laquelle on attribue un rôle à chaque caractère (tous les caractères ne peuvent pas avoir tous les rôles non plus). Cette attribution se fait via un glyph dédié à chaque combinaison caractère-rôle.
+
+Ces rôles sont :
+
+- isolé  
+- Onset  
+- Noyau (= pseudo noyau)  
+- Coda
+
+On fait ensuite une seconde passe pour déterminer la hauteur des préfixes et la hauteur des lettres (excepté flottantes) qui peuvent varier (certaines des Noyaux & Codas)
+
+Puis une troisième passe en activant les flottantes pour déterminer leur position relative aux autres lettres.
+
+Ensuite simplement construire les lettres deux par deux en fonction de leurs voisines, pour les changements qui risquent de changer les points d’accroche (low mid high…)
+
+Finalement une passe esthétique où on fait des remplacements qui dépendent du contexte, mais ne changent pas le point d’accroche des lettres.
+
+Puis faire le kerning approprié dans une dernière passe.
+
+NOTE : Chaque combinaison spéciale peut se faire soit par une transformation visuelle du glyph, soit par une forme de kerning particulier.  
+Le script doit être agencé de manière à ce qu’il soit possible de remplacer un changement de glyph par un cas particulier de translation, et vice versa ; pour les différentes polices qui pourraient être inspirées du cas actuel.
+
+## Les Lettres Isolées
+
+En mode isolés, les lettres sont de même largeur et avec les mêmes espacements.  
+Les flottantes ont leur propre forme “isolé” (avec un trait support).
+
+Elles ont toutes le même espacement et la même largeur.
+
+## Les Codas
+
+- s et les flottantes (h j l) n’ajoutent aucune largeur à la syllabe.  
+- f n t k ajoutent 1 de largeur à la syllabe (la taille standard)
+
+Il faut créer une forme spéciale pour les consonnes à base horizontales : f, n et t ; en fonction de si la voyelle se termine sur low ou sur mid.
+
+Les flottantes (j h, l) et k fonctionnent entièrement comme des diacritiques, tandis que “s” fonctionne comme une diacritique mais engendre une modification de la forme précédente pour “se connecter”.
+
+K existe seule dans la coda (son slot de coda ne peut pas être partagé avec les autres lettres)  
+Aucune lettre à part les flottantes peut être suivie dans une coda. Le slot de coda est “max 1 flottante” \+ max 1 non flottante éligible en coda ; au delà de ça, c’est l’onset de la syllabe suivante (quitte à être des lettres isolés qui traînent)
+
+## Les Onset
+
+- Les seules combinaisons éligibles sont : k ks kF ksF t ts tF tsF s sF st sk sf f fh fs n nF l q j d g gF  
+- Où F symbolise une flottante j, h ou l  
+- Sans être “absorbés par la coda”, t et k ont une forme spéciale lorsqu’ils précèdent un “f” qui se connecte mid. (“forme conditionnelle en ‘isolation’ : quand la lettre se retrouve en forme isolé à cause de règles de détermination de type, genre onset, alors elle peut quand même avoir une forme isolé alternative dans certaines conditions de manière à se connecter à d’autres lettres)
+
+Toute autre combinaison n’est pas un onset ; on “trim” jusqu’à la lettre appropriée, en laissant le reste à gauche comme des lettres isolés.  
+Un ensemble d’onset sans pseudo noyau est un ensemble de lettres isolés.
+
+Selon la première lettre de l’onset, on aura un de 4 points d’accroche (qui iront affecter la forme du préfixe si il y en a un) :
+
+- High avec “s t”  
+- High Mid avec “d k g”  
+- Mid avec “n” et “f” lorsque f est suivi d’un pseudo noyau amorcé en mid.  
+- Low avec un f si le pseudo noyau est amorcé en low.  
+- Si l’onset est une flottante ou “q”, on considère les ligatures spéciales, et sinon (surtout pour les préfixes i et o), on joint comme si le préfixe faisait partie du pseudo noyau.
+
+Si un “n” ou un “f” est catégorisé en forme isolé et est directement précédé d’un f coda ou d’un autre f isolé, alors il prend une forme isolé spéciale qui le “colle” au f précédent (low si le f précédent était low, mid si le f précédent était mid)
+
+q et l forment une ligature spéciale avec le préfixe s. q forme une également une ligature spéciale avec tous les autres préfixes.
+
+TODO : Lister comment construire les onsets.
+
+L’onset t doit adopter une forme très différente en fonction de l’amorçage du noyau si il est directement après. Par conséquent, on crée un glyph qui combine la courbe de ce “t” avec la moitié gauche de la voyelle directement.  
+Lorsque t est précédé par s, ou est “d” (d est une forme de t avec une marque au dessus qui prend le même volume qu’un s le précédent), il adopte une forme alternative (dont il faut également dessiner la combinaison avec les moitiés gauche voyelles qui suivent) ; certains voyelles partagent leur moitié gauche ce qui facilite ces combinaisons.  
+“d” peut être considéré comme une diacritique sur un t en forme alternative.  
+La forme alternative de t dont on parle a un point d’insertion à gauche “high mid”, alors que le t a un point d’insertion “high”.
+
+k a une forme pour se connecter aux noyaux inline mid et une autre pour les low. La décision se passe exactement de la même manière que f.
+
+g peut être considéré comme une forme esthétique de k mid, qui se connecte exactement de la même manière. Si g précède un noyau dont le point d’insertion est low, elle s’y connecte sans changer (exactement comme “n”). Donc “k” se connecte comme un “f” (avec même variabilité), et “g” se connecte comme un “n” et déclenche les mêmes transformations des voyelles qui suivent.
+
+k et g ont un point d’insertion à gauche “high mid”
+
+s a un point d’insertion à gauche “high”
+
+## Les Préfixes
+
+- Les seuls préfixes sont “o i s f”  
+- s et f ont leur propre touche pour être tapés comme préfixes, donc peuvent être assimilés à d’autres caractères de l’alphabet genre S et F majuscules, tandis que o et i sont la même touche.  
+- Si s ou f se retrouvent en forme isolé devant une coda, on peut inférer (si ils sont collés à la coda) que ce sont des préfixes (et les interpréter comme préfixes même si on n’a pas utilisé la touche spéciale). Cependant, dans certaines situations ce n’est pas possible de discriminer (par exemple entre “sja” et “Sja” on ne peut pas deviner que S est un préfixe sans utiliser le caractère dédié dès le début ; préférer interpréter comme onset les patterns comme “sja” (sj \= onset).
+
+Un S ou F qui ne sont pas suivis d’un onset valide sont marqués comme s isolé et f isolé respectivement.
+
+Les préfixes ont quatres formes : high, high mid, mid, low ; selon le point d’accroche de l’onset.
+
+TODO : Lister les différentes formes de préfixes nécessaires \+ combinaisons spéciales, et les réalisations de formes spéciales qui ne nécessitent qu’une transformation de coordonnées.
+
+## Les Pseudo Noyaux
+
+Le pseudo noyau et formé d’une infinité de voyelles inline éventuellement entrecoupées de flottantes (max 2 entre chaque voyelle sinon split) (qu’on peut donc ignorer / laisser non marquées dans une passe qui vérifie le noyau).  
+A cause de la forme de cette structure, on peut considérer que les lettres concernées peuvent rester non marquées (finalement, c’est surtout une affaire de laisser les flottantes non marquées, puisque les voyelles inline sont uniques à cette catégorie).
+
+Les voyelles inline sont : a e p o b y c u   
+Les flottantes sont : i h j y
+
+Les voyelles inline sont fortement connectées les unes avec les autres, ce qui impose de les réaliser comme une séquence de jonctions, avec une partie initiale qui fait jonction avec l’onset, et une partie finale qui fait jonction avec la coda (éventuellement vide).  
+L’onset peut être vide.
+
+Lorsque “i” commence ou fini un noyau, et que respectivement l’onset est “rien ou l ou q”, ou la coda est rien ou une flottante, elle est dans une forme où elle prend une largeur de 1 et accepte des flottantes.  
+“i” en début de pseudo noyau forme des formes spéciales avec de nombreuses dernière lettre de l’onset (ces formes spéciales pourront être implémentées sous la forme de translations relatives, donc pas besoin de ligatures pour ce cas).
+
+Les flottantes sinon précèdent leur voyelle et sont encore dans le pseudo noyau (non marquées), ou se retrouvent en forme de coda.
+
+Les voyelles inline ont des points d’insertion pour l’onset qui les précède et la coda qui les suit :
+
+- Mid à gauche : a e p c b2 u2  
+- Low à gauche : o y b1  
+- Mid à droite : a p c b2 u1  
+- Low à droite : e o y b1 u2
+
+u et b ont deux formes.
+
+u1 apparaît uniquement lorsque l’onset est l, rien, ou finit par s ou sF. (sinon c’est toujours u2)  
+Donc lorsque l’onset est une lettre comme “f” qui peut se connecter en mid ou low, elle rencontre toujours u2 donc se connecte en mid.  
+“u” change contextuellement entre u1 et u2.  
+u2 peut être saisie styllistiquement en saisissant U pour avoir sa forme isolée. Dès qu’elle est précédée par un onset incompatible, elle change vers la forme appropriée. De même lorsqu’elle est suivie de n’importe quelle coda non flottante.
+
+b1 est la forme par défaut.  
+b2 est une forme stylistique qui peut être écrite en saisissant B. Le seul contexte qui force l’apparition de cette lettre est lorsque l’onset est “q”. Si un onset autre que “l”, “q”, “n”, ou se terminant par “f” le précède, il revient de force à b1 même si B a été saisi. De même lorsqu’elle est suivie de n’importe quelle coda non flottante.
+
+Les voyelles inline sont généralement formées de deux moitiés, qui adoptent une forme de jonction avec la lettre précédente ou suivante.
+
+“n” ressemble à une combinaison d’un f low et d’un f mid, c’est pourquoi certaines voyelles inline peuvent réutiliser leur caractère de jonction avec 
+
+La flottante “l” est un trait horizontal qui “flotte” au dessus d’une voyelle. Elle doit s’étendre en fonction de la voyelle inline qui est en dessus, tout en se connectant aux l précédents et suivants.  
+Lorsque “l” est en coda elle se retrouve en dessous.  
+Les largeurs sont :
+
+- a et p : dessus large des deux côtés et dessous court des deux côtés  
+- o et y : dessus court des deux côtés et dessous large des deux côtés  
+- e, b1 et u1  : dessus et dessous court à droite, large à gauche  
+- b2 et u2 : dessus et dessous large à droite, court à gauche  
+- c : court au dessus et en dessous des deux côtés
+
+Large d’un côté \= ça atteint jusqu’à la limite de la voyelle ; court ça veut dire que le trait devrait s’arrêter aux deux tiers de la distance entre le milieu et le bord.  
+Sauf que lorsque deux “l” se suivent d ‘une voyelle à une autre, les côtés courts doivent se rejoindre (donc on traite comme si c’était long de ce côté finalement) ; ça peut se résoudre avec des modifications esthétiques, mais alors peut être qu’il faut multiplier les glyphs diacritiques en ayant le “l” split en deux composants par voyelle.
+
+Dans le nommage des glyphs, il faudrait nommer les glyphs voyelles aussi par rapport à leur forme droite ou gauche prévue (par exemple jonction entre a\_ et \_o).
+
+- a, e, p partagent exactement la même moitié gauche (=a\_)  
+- o, y et b2 partagent exactement la même moitié gauche (=o\_)  
+- o et b1 partagent exactement la même moitié droite (=\_o)  
+- Les autres lettres n’ont pas de moitié en commun.
+
+Lorsqu’on crée des combinaisons particulières pour des onsets en jonction avec les voyelles inline d’un noyau (formes de t, règles de connexion de s, formes jonction avec f et n), on peut réutiliser ces propriétés pour avoir moins de combinaisons à produire.
+
+Le noyau peut se retrouver connecté à l’onset de plusieurs manières, en fonction de ce par quoi l’onset se termine :
+
+- Forme isolée : L’onset est composé de la flottante “l” ou il n’y a pas d’onset.  
+- Forme q : Les voyelles ne sont pas affectées visuellement (c’est seulement une affaire de kerning de q), mais u bascule vers u2 et b bascule vers b2  
+- Forme f : Lorsque précédé d’un f (qui peut être mid ou low selon la voyelle). L’onset “k” se connecte de la même manière que le f et déclenche la même forme.  
+- Forme n : Lorsque précédé d’un n (le n s’accroche mid et low en même temps, c’est pour ça qu’on a besoin d’une forme visuelle différente, mais visuelle uniquement ; toutes ces formes prennent l’espace de la voyelle). L’onset “g” se connecte de la même manière qu’un “n”.  
+- Forme s : certaines voyelles ont besoin d’une forme visuelle alternative ou d’un kerning pour correctement se connecter au s.
+
+TODO : Lister toutes les jonctions qui nécessitent leur propre caractère, et celles qui peuvent être réalisées avec des espaces.
+
+TODO : Déterminer les métriques de référence des lettres (“espacement de taille 1 (unité à déterminer)”, “valeurs de hauteurs”, …)
+
+
+
+
+
+actually, “i” becomes floating_i when sandwiched between vowels or before a coda 
+(if before a coda it becomes coda_i) (“i” counts like a floating for the coda detection) ;
+
+
+We won’t be using any “anchoring mechanism”. 
+High midhigh mid and low are only logical classes in order to think about 
+how characters are related to one another. 
+They’re also references for how to draw characters. 
+You only need to know that in order to think about how letters should connect to one another
+
+t becomes either a ligature with vowel left, so it’s followed by vowel right; if t is preceded by some letters like s, or it has to bear the diacritic that defines “d”, or it’s preceded by prefix o, then it should switch to the “d” form which is a version of t with some room left on top. (to bear the s, diacritics etc). t remains in tall form t form when preceded by f.
+
+If t is followed by other compatible consonant onsets it becomes a special form, and the burden of connecting to vowels falls on the next conosnnant.
+
+
+
+We’ll need to create a _sq_ and s_ll_l and s_ls_l ligature ; When s is connected to a “l” the “l” must be long on the left to bear the incoming s. (so that’s less forms to plan for)
+
+
+Whenever the junction between vowels is not specified, 
+they just sit next to each other. 
+For instance, aa is just a\_ \_a a\_ \_a. 
+If a letter is stated to “always connect mid right” 
+and another is “always connect mid left” then when they follow they use their form to connect like \_e\_low\_ ; 
+f and k and n (and maybe other deps on what I wronte) implicitly use those connecting forms.
+
+
+No the height variations should never be encoded as glyphs ; 
+they will simply be added with the cosmetic positioning updates at the end.
+
+Positioning transitions will be done later on.
+
+Everything should be coded as one single feature with many lookups, to ensure it’s run.
+
+note that some vowels like e share the same head, so e = a_ and _e ; it’s shared and it simplifies the font a lot.
+
+Yes I also only need to have t\_a\_ \_e if I want “te” ; Works for any merger on the left that replaces a\_
+
+By “d” I meant that when you type “d”, it has to do a “d\_ \_d” substitution. “da” is “d\_ \_d\_a\_ \_a” ; but also if you have “sta” you actually have s\_d\_ \_d\_a\_ \_a because this d alternate form of t is “lower” which leaves space on top for attaching some consonants, which I specified in my document.
+
+Actually you can’t have two consecutive “i” in a nucleus, this makes the previous i a coda, and the next i becomes a prefix because k is an onset.
+
+I’m displaying the font in webpages. Putting all that in ccmp including pos seems to work very well.
+
+2 : The specific prefix_o is actually much more an isolated “o” that will have custom positioning, 
+so it’s nothing special in terms of structure. It just happens when the “o” is isolated and right before a valid onset. 
+(Btw if “i” is not before a valid onset, it’s just part of the nucleus). So prefix_o is actually a bit useless ; 
+this could only be a contextual alternative form if we want to have some subtly styling if o is detected as a prefix, 
+but maybe we should not include that cuz it would complexify the first version of the font for no reason.
+
+3 : All “double floating” are not compatible (so no jj, no hh…) ; Only valid pairs are : hj, hl. 
+Then you can also have “ji” and “ij” but “ij” will be rendered as “i” inline (its own vowel) 
+with “j” between it and the next vowel (so only one diacritic “j”), and for “ji” it will be the same, 
+i will be inline and “j” will be a diacritic that will be rendered above the “i” inline, as if “i” were a vowel 
+and takes its own width (which is the case). Actually the only case where “i” becomes “floating” 
+(marked as a diacritic so it’s ignored when joining line letters = non floating) is when it’s alone between two inline vowels, 
+or between “solid onsets” like k t s (anything but the floatings) and a nuclei, and before “line codas” like f n t s 
+(any coda that is not floating actually) ; “i” is non floating when it’s sandwiched by either nothing or a floating on one side, 
+and is floating when there’s anything “inline” that needs to be joined on both sides.
+
+4 : Any pair I did not specify in the glyphs does not have a custom joined for ; “e” always join 
+with the letter / coda on the right as a “low” entry point, using it’s e join low form. “b” always joins left 
+like a mid entry point (so like “kb” is “\_k\_mid\_ \_mid\_b\_ \_o”) ; 
+b2 is the mirror of that, always joins right like a mid : “b2f” is “o\_ \_b2\_mid\_ mid_f” 
+and btw when there is no double form, then when you join with a double and there is no planned double 
+(in particular for “e” and “b” and “b2” on their “joins like a …” side (so not the ones that are shared with a and o), 
+they join the double letter using their “simple” insertion point. Like “b2n” works like “o\_ \_b2\_mid\_ coda_n” 
+whereas “on” would do “o\_ \_o\_double\_ coda_n” because there was a double form available on this direction.
+
+5 : The “i” will be coded as an inline and there will be a special form of coda k that will then have special positioning in this situation. 
+However with other codas such as coda_t we need i as a floating, 
+so that it won’t “disturb the positioning of the coda_t” which depends on the mid or low insertion point of the letter before. 
+Ah right I forget to distinguish the two, because there has to be a mid coda t and a low coda t.
+
+6 : u2 can never connect on the left unless I explicitely state there’s a piece (like \_k\_u2\_ ; 
+or it’s a linear form (mid, double, low) that is already compatible with \_double\_u2\_) ; 
+If u2 was typed explicitly by the user (using U caps), then it’s switched back to “u” when it cannot connect (like with t)
+
+7 : No other prefixes will need a ligature, it’ll all be positioning 
+(and we do special positioning after the font is at least working with all the complex letter part and ligature rules ; 
+positioning is super important, to the point where you can’t read without what we’ll do in positioning, 
+but it won’t change the logical order of the components and this is the hardest thing to do rn that’s why we’ll think about it, 
+but you’re right that we have to plan the stuff that will need to be in positioning in advance, not necessarily the exact positions)

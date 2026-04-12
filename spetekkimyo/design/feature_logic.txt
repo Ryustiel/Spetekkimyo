@@ -1,0 +1,113 @@
+
+Un peu d'expérience concernant les feature files :
+
+D'abord, on ne peut ignorer qu'un unique groupe (dédié aux diacritiques).
+La plupart des navigateurs ne supportent pas les autres groupes à ignorer.
+
+Ensuite, on veut utiliser au maximum un seul type d'enchaînement de substitutions contextuelles (en ccmp obligatoire)
+et un seul type de ligatures obligatoires, 
+pour définir le comportement de la police.
+
+C'est parce que les features plus simples sont simplement ignorées par les navigateurs.
+On ne peut pas se permettre de les avoir ignorés car la police de Seiso représente le comportement
+d'un script totalement différent de l'alphabet latin, et les ligatures et substitutions qu'on implémente
+déterminent entièrement ce comportement. Sans ça, les lettres affichées ne font aucun sens.
+
+
+Un enchaînement de substitutions contextuelles peut être vu comme suit :
+
+1. D'abord on réfléchi hollistiquement une logique entre plusieurs lookups : *
+qu'est ce que le lookup va changer.
+
+2. Ensuite on applique les substitutions pour soit créer des caractères, soit les remplacer (en une seule passe).
+La substitution s'applique de gauche à droite, en vérifiant le contexte de chaque char par rapport au préc. et suivant.
+Lorsqu'un caractère est modifié, il compte comme modifié dans le contexte du caractère suivant.
+
+3.La substitution en elle même peut viser à remplacer contextuellement des caractères, 
+et donc notamment à créer des marques ou des éléments qui ont pour but d'être explicitement utilisés
+dans les lookups suivants, pour simplifier les opérations et checks.
+
+4. Puisque de nombreux patterns de Seiso sont définis "en ignorant les lettres flottantes",
+par exemple les jonctions entre voyelles, il vaut mieux faire les détections de voyelles dans une passe à part.
+
+
+
+On transforme toutes les voyelles par rapport au voisin suivant,
+de manière à obtenir les formes de jonctions appropriées :
+"aoe" deviens "a_ _ao_ _oa_ _e"
+On en profite pour adapter également les codas et les onsets.
+("aef" était devenu "a e coda_f" et devient "a_ _a a_ _e_low_ low_f)
+("skta" était devenu "prefix_s k t a" (onsets and nuclei are unmarked) and
+will become "prefix_s k_d_ _d_a_ _a") (remember that d is the form of t that accepts onset components before it)
+C'est la plus grande passe.
+Il faut adapter aussi prédictivement b, b2, u, u2 en fonction des contraintes, 
+et f et coda_f vers mid_f et low_f en fonction des lettres après ou avant respectivement.
+
+
+
+Exemple de feature file :
+
+table GDEF {
+    GlyphClassDef
+        [], # Base glyphs
+        [], # Ligature glyphs
+        [ici lister les glyphs], # Mark glyphs
+        []; # Component glyphs
+} GDEF;
+
+
+feature ccmp {
+    script DFLT;
+    language dflt required;
+    script latn;
+    language dflt required;
+
+    #############################
+
+    lookup TEST {
+
+        sub A by B;  # Classic substitution is for 
+
+    } TEST;
+
+    #############################
+
+    lookup TEST2 {
+
+        sub a b by c;  # This is glyph merging.
+        # It can be mirrored to create many glyphs from one.
+        # Only one direction "many to one" or "one to many" can coexist within one lookup.
+        # But you're not constrained in the number of lookups you do, only try to group together operations.
+
+    } TEST2;
+
+    #############################
+
+    lookup TEST3 {  # Test
+
+        lookupflag IgnoreMarks;
+
+        # Lettre F
+
+        sub [a b] c' by d;
+
+    } TEST3;
+
+    # The ' after a glyph is used to mean that you want to update THIS only.
+    # Any other stuff is context.
+    # You should only use a combination of those 
+
+    lookup TEST_2D_KERN {
+
+        pos a [b c] <-80 480 0 0>;
+        pos [d e] [f g] <-80 0 0 0>;
+
+    } TEST_2D_KERN;
+
+    lookup TEST_KERN {
+
+        lookupflag IgnoreMarks;
+
+        pos [a b] [c d] -80;  # Any of the pairs between chars from both classes
+
+    } TEST_KERN

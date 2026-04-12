@@ -1,0 +1,317 @@
+
+
+table GDEF {
+    GlyphClassDef
+        [], # Base glyphs
+        [], # Ligature glyphs
+        [j h i_mrk_nuc j_mrk h_mrk j_i_mrk h_i_mrk l_mrk_la l_mrk_lo l_mrk_al l_mrk_ol l_mrk_sla l_mrk_slp l_mrk_bRl l_mrk_bLl l_mrk_lbR l_mrk_lbL], # Mark glyphs
+        []; # Component glyphs
+} GDEF;
+
+feature ccmp {
+    script DFLT;
+    language dflt required;
+    script latn;
+    language dflt required;
+
+    ######################################################################### 1 CHOIX CONTEXTUEL
+
+    lookup ETAPE_1_REPLACEMENTS {
+
+        sub n_alt by n_ons_mid;
+
+    } ETAPE_1_REPLACEMENTS;
+
+    ################################
+
+    lookup ETAPE_1_PRE_MERGE {
+
+        sub j i by ji;
+        sub j j by ji;
+        sub h i by hi;
+        sub h j by hi;
+
+        # Lettre S
+
+        sub s_ons_hi i by s_i_ons;
+
+    } ETAPE_1_PRE_MERGE;
+
+    #################################
+
+    lookup ETAPE_1_NON_FLOTTANTES {  # Choix forme contextuelle de base
+
+        lookupflag IgnoreMarks;
+
+        # Lettre F
+
+        sub [a p] f_ons' by f_ons_mid;
+        sub [o e] f_ons' by f_ons_low;
+
+        sub f_ons' [a c u] by f_ons_mid;
+        sub k_ons_hmid' [a c u b] by k_ons_mid;
+
+        sub f_ons' [o b] by f_ons_low;  # This isnt optimal but it's easier to read
+        sub k_ons_hmid' [o b] by k_ons_low;
+
+        # Lettre B
+
+        sub [o n_ons_mid f_ons_low] b' by b1_nuc;
+        sub b' by b2_nuc;
+
+        # Lettre U
+
+        sub [t_ons_hi s_ons_hi] u' by u1_nuc;  # Ignore next letter
+        sub [n_ons_mid] u' by u2_nuc;  
+        sub u' [a e p o b c y n_ons_mid] by u1_nuc;
+        sub u' [f_ons] [a e p c u n_ons_mid] by u1_nuc;
+        sub u' by u2_nuc;
+
+    } ETAPE_1_NON_FLOTTANTES;
+
+    #################################
+
+    lookup ETAPE_1_FLOTTANTES {  # D�cide si les lettres flottantes doivent devenir des diacritiques ou non
+
+        # IJ positioning
+
+        sub s_ons_hi i' by s_ons_hi i_mrk_nuc;
+
+        sub [a o e p y b2_nuc b1_nuc u2_nuc u1_nuc n_ons_mid] i' [a o e p y b2_nuc b1_nuc u2_nuc u1_nuc n_ons_mid] by i_mrk_nuc;  # i becomes a diacritic
+        sub i' [n_ons_mid] by i_mrk_nuc;
+
+        sub ji' [n_ons_mid a o e p y b2_nuc b1_nuc u2_nuc u1_nuc n_ons_mid] by j_i_mrk;  # ji becomes a diacritic if followed by something
+        sub hi' [n_ons_mid a o e p y b2_nuc b1_nuc u2_nuc u1_nuc n_ons_mid] by h_i_mrk; 
+
+        sub j' [a o e p y b2_nuc b1_nuc u2_nuc u1_nuc] by j;
+        sub j' by j_mrk;  # If not followed
+
+        # H positioning
+
+        sub h' [a o e p y b2_nuc b1_nuc u2_nuc u1_nuc] by h;  # Check if followed by something
+        sub [a o e p y b2_nuc b1_nuc u2_nuc u1_nuc] h' by h_mrk;
+
+        # L positioning
+
+        sub [s_ons_hi t_ons_hi d_ons_hmid] l' [a e b1_nuc u1_nuc] by l_mrk_sla;  # s t k precedence
+        sub [s_ons_hi t_ons_hi d_ons_hmid] l' [b2_nuc u2_nuc p] by l_mrk_slp;
+
+        sub l' [a e] by l_mrk_la;  # If followed by something
+        sub l' [o y] by l_mrk_lo;
+        sub l' [b2_nuc u2_nuc p] by l_mrk_lbL;
+        sub l' [b1_nuc u1_nuc] by l_mrk_lbR;
+
+        sub [a e] l' by l_mrk_al;  # If not followed
+        sub [o y] l' by l_mrk_ol;
+        sub [b2_nuc u2_nuc p] l' by l_mrk_bLl;
+        sub [b1_nuc u1_nuc] l' by l_mrk_bRl;
+
+    } ETAPE_1_FLOTTANTES;
+
+    ######################################################################### 2 DECOMPOSITION FUSION
+
+    lookup ETAPE_2_DECOMPOSITION {  # Decoupe tous les caracteres en composants
+
+        lookupflag IgnoreMarks;
+
+        # Explicit 2 Parts
+
+        sub a by a_nuc_L a_nuc_R;
+        sub o by o_nuc_L o_nuc_R;
+        sub e by a_nuc_L e_nuc_R;
+        sub p by a_nuc_L p_nuc_R;
+        sub y by o_nuc_L y_nuc_R;
+        sub c by c_nuc_L c_nuc_R;
+        sub s_ons_hi by s_nuc_L s_nuc_R;
+
+        # Implicit 2 Parts
+
+        sub s_i_ons by s_i_ons s_nuc_R;
+
+        # B
+
+        sub b1_nuc by o_nuc_L b_nuc_R;
+        sub b2_nuc by b_nuc_L o_nuc_R;
+
+    } ETAPE_2_DECOMPOSITION;
+
+    #################################
+
+    lookup ETAPE_2_FUSION {  # Fusionne les composants des que possible
+
+        lookupflag IgnoreMarks;
+
+        # AO OA
+
+        sub a_nuc_R o_nuc_L by a_o_nuc_alt;
+        sub o_nuc_R a_nuc_L by o_a_nuc_alt;
+
+        sub o_a_nuc_alt a_nuc_L by o_a_nuc_alt;
+        sub a_o_nuc_alt o_nuc_L by a_o_nuc_alt;
+
+        # S
+
+        sub s_nuc_R a_nuc_L by s_a_nuc_alt;
+        sub s_nuc_R b_nuc_L by s_b_nuc_alt;
+        sub s_nuc_R c_nuc_L by s_c_nuc_alt;
+
+        sub s_nuc_R u1_nuc by u1_nuc;
+
+        # K
+
+        sub k_ons_hmid s_nuc_L by k_s_ons;
+
+        # T
+
+        sub t_ons_hi s_nuc_L by t_s_ons;
+        sub t_ons_hi a_nuc_L by t_a_ons_L;
+        sub t_ons_hi o_nuc_L by t_o_ons_L;
+        sub t_ons_hi b_nuc_L by t_b_ons_L;
+        sub t_ons_hi c_nuc_L by t_c_ons_L;
+
+    } ETAPE_2_FUSION;
+
+    ######################################################################### 3 ESTHETIQUE
+
+    lookup ETAPE_3_ESTHETIQUE {  # Applique les formes purement esth�tiques
+
+        lookupflag IgnoreMarks;
+
+        # HORIZONTAL CONNECTORS
+
+        sub [n_ons_mid f_ons_low] a_nuc_L' by a_nuc_L_postN;
+        sub [n_ons_mid f_ons_low] c_nuc_L' by c_nuc_L_postN;
+        sub [n_ons_mid f_ons_mid] o_nuc_L' by o_nuc_L_postN;
+        sub [a_nuc_R p_nuc_R] b_nuc_L' by b_nuc_R_preN;
+
+        sub c_nuc_R' [n_ons_mid f_ons_low] by c_nuc_R_preN;
+        sub a_nuc_R' [n_ons_mid f_ons_low] by a_nuc_R_preN;
+        sub o_nuc_R' [n_ons_mid f_ons_mid] by o_nuc_R_preN;
+
+        sub p_nuc_R' [n_ons_mid f_ons_low] by p_nuc_R_preN;
+        sub e_nuc_R' [n_ons_mid f_ons_low s_nuc_L s_i_ons] by e_nuc_R_preN;
+        sub b_nuc_R' [n_ons_mid f_ons_mid] by b_nuc_R_preN;
+
+        # U FORMS
+
+        sub k_ons_mid u1_nuc' by u1_nuc_postHi;
+        sub s_nuc_R u1_nuc' by u1_nuc_postHi;
+
+        sub n_ons_mid u2_nuc' by u2_nuc_postN;
+        sub [k_ons_mid f_ons_mid] u2_nuc' by u2_nuc_postHi;
+
+        sub u1_nuc' n_ons_mid by u1_nuc_preN;
+        sub u1_nuc' [f_ons_mid] by u1_nuc_preHi;
+
+        sub t_ons_hi' u1_nuc by t_u1_ons;
+
+        # B ENDING FORMS
+
+        sub [f_ons_low] b_nuc_L' o_nuc_R' [a_nuc_L o_nuc_L s_nuc_L s_i_ons] by b_nuc_L; # Ignoring certain combinations
+        sub e_nuc_R' b_nuc_L' o_nuc_R' by b1_nuc_cod;
+        sub o_nuc_R o_nuc_L' b_nuc_R' by b1_nuc_cod;  # _b implies it is not connected to the next letter
+        # TODO : Mix b_ending to bs, bn, bf, bt, bk depending on the consonnant that follows
+        # TODO : Ignore b_ending if followed by any other shit
+
+        # S ENDING FORMS
+
+        sub [a_nuc_R n_ons_mid f_ons_mid] s_nuc_L' s_nuc_R' by s_nuc_postHi;
+        sub [f_ons_low e_nuc_R_preN] s_nuc_L' s_nuc_R' by s_nuc_postLow;
+
+        sub o_nuc_R' s_nuc_L' s_nuc_R' by o_s_nuc_cod;
+        sub c_nuc_R' s_nuc_L' s_nuc_R' by c_s_nuc_cod;
+        sub p_nuc_R' s_nuc_L' s_nuc_R' by p_s_nuc_cod;
+        sub y_nuc_R' s_nuc_L' s_nuc_R' by y_s_nuc_cod;
+
+    } ETAPE_3_ESTHETIQUE;
+
+    ######################################################################### 4 KERNING
+
+    lookup ETAPE_4_KERNING {
+
+        lookupflag IgnoreMarks;
+
+        # MERGE VOYELLE -80
+
+        pos [a_nuc_R o_nuc_R] [a_nuc_L o_nuc_L] -80;
+        pos p_nuc_R [a_nuc_L o_nuc_L] -90;
+        pos o_nuc_R b1_nuc_cod -5;
+
+        # VOYELLE U
+
+        pos t_u1_ons [u1_nuc u1_nuc_preN u1_nuc_preHi] -160;
+        pos [s_nuc_L s_i_ons] [u1_nuc u1_nuc_preN u1_nuc_preHi] -120;
+
+        # MERGE VOYELLE S -80
+
+        pos [s_nuc_R] [o_nuc_L] -80;
+        pos a_nuc_R s_nuc_postHi -80;
+        pos [f_ons_low e_nuc_R_preN] s_nuc_postLow -80;
+
+        pos [n_ons_mid f_ons_mid] s_nuc_postHi -5;
+
+        # MERGE VOYELLE F N
+
+        pos [a_nuc_R o_nuc_R p_nuc_R a_nuc_R_preN o_nuc_R_preN c_nuc_R_preN p_nuc_R_preN b_nuc_R_preN e_nuc_R_preN] [f_ons_mid f_ons_low n_ons_mid b_nuc_R_preN] -20;
+        pos [f_ons_mid f_ons_low n_ons_mid] [a_nuc_L o_nuc_L a_nuc_L_postN o_nuc_L_postN c_nuc_L_postN] -20;
+
+        # POSITIONNEMENT K T VOYELLE
+
+        pos k_ons_mid c_nuc_L -40;
+
+        # MERGE K T S
+
+
+
+    } ETAPE_4_KERNING;
+
+    #################################
+
+    lookup ETAPE_4_DIACRITIC_KERNING {
+
+        # POSITIONNEMENT IJHL NON DIACRITIQUES
+
+        pos i [t_s_ons t_a_ons_L] <-80 480 0 0>;
+        pos i [s_nuc_L s_i_ons] <-80 420 0 0>;
+        pos [i ji] [a_nuc_L o_nuc_L] <-80 0 0 0>;
+
+        # VOYELLE I
+
+        pos i_mrk_nuc [n_ons_mid] <-260 360 0 0>;  # x-advance y-advance x-placement y-placement (placement moves the glyph)
+        pos i_mrk_nuc [a_nuc_L o_nuc_L a_nuc_L_postN o_nuc_L_postN a_o_nuc_alt o_a_nuc_alt a_nuc_R o_nuc_R] <-290 -260 0 0>;
+
+        # FLOTTANTES JH
+
+        # pos [s_ si_] [j h] <180 0 0 0>;
+        pos [j h j_i_mrk h_i_mrk] [n_ons_mid] <-100 360 0 0>;
+        pos [j h j_i_mrk h_i_mrk] [a_nuc_L o_nuc_L a_nuc_L_postN o_nuc_L_postN] <180 360 0 0>;
+        pos [j h j_i_mrk h_i_mrk] [a_nuc_R o_nuc_R o_a_nuc_alt a_o_nuc_alt] <-100 360 0 0>;
+
+    } ETAPE_4_DIACRITIC_KERNING;
+
+    #################################
+
+    lookup ETAPE_4_CONSTANT_KERNING {
+
+        # POSITIONNEMENT S
+
+        pos s_nuc_L <0 0 -80 0>;
+        pos s_i_ons <0 0 -140 0>;
+
+        # POSITIONNEMENT IJH
+
+        pos [j_mrk h_mrk] <-375 -260 0 0>;
+        pos [i ji hi] <60 100 40 0>;
+
+        # POS L
+
+        pos [l_mrk_la l_mrk_lo l_mrk_lbR l_mrk_lbL l_mrk_lbR l_mrk_lbL] <0 420 0 0>;
+        pos [l_mrk_slp l_mrk_sla] <-260 420 0 0>;
+        pos [l_mrk_al l_mrk_ol] <-550 -140 0 0>;
+        pos [l_mrk_bRl l_mrk_bLl] <-500 -140 0 0>;
+
+        pos l <0 160 0 0>;
+
+    } ETAPE_4_CONSTANT_KERNING;
+
+} ccmp;
