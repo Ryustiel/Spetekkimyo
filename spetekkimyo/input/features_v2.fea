@@ -1,0 +1,343 @@
+# =============================================================================
+# SEISO / Seiso script experimental feature file
+# =============================================================================
+#
+# Compile-oriented scaffold for the current glyph set.
+# The active lookups stay close to the imported names in input/glyphs.
+# Draft-only structural names are kept in comments so the file remains useful as
+# a handoff to another LLM.
+#
+# Core ideas captured here:
+# - one mandatory ccmp feature
+# - early context cleanup for i and prefix hints
+# - shared vowel halves and explicit pair joins
+# - mark-like helpers stay in GDEF so IgnoreMarks can work
+# - d/g are split late, after the legacy onset helpers have had a chance to see
+#   the plain letter
+#
+# =============================================================================
+
+languagesystem DFLT dflt;
+languagesystem latn dflt;
+
+table GDEF {
+    GlyphClassDef
+        [], # Base glyphs
+        [
+            _sq_
+            _s__ll_l
+            _s__ls_l
+        ], # Ligature glyphs
+        [
+            floating_i
+            floating_j
+            floating_h
+            coda_j
+            coda_h
+            ll_l
+            sl_l
+            ls_l
+            ss_l
+            ll_coda_l
+            sl_coda_l
+            ls_coda_l
+            ss_coda_l
+            d_mark
+            d_mark_ps
+            g_mark
+        ], # Mark glyphs
+        [] # Component glyphs
+        ;
+} GDEF;
+
+# -----------------------------------------------------------------------------
+# RAW CLASSES
+# -----------------------------------------------------------------------------
+@RAW_INLINE         = [a e p o b b2 y c u u2 i];
+@RAW_INLINE_NO_I    = [a e p o b b2 y c u u2];
+@RAW_FLOATING       = [j h l];
+@RAW_LINE_CODA      = [f n t s];
+@RAW_CODA_PREFER    = [s j h];
+@RAW_ONSET_PREFER   = [f k t n q d g];
+@RAW_ONSET_SINGLE   = [k t f s n q d g];
+@RAW_PAIR_HEAD      = [s t k f];
+@RAW_PAIR_TAIL      = [t f s k];
+@RAW_PREFIXABLE     = [o i];
+@RAW_VOWELS         = [a e p o y b b2 c u u2];
+@RAW_MID_VOWELS     = [a e p c u];
+@RAW_LOW_VOWELS     = [o y b b2];
+@RAW_L_LL           = [a p];
+@RAW_L_SS           = [o y c];
+@RAW_L_LS           = [e b u];
+@RAW_L_SL           = [b2 u2];
+
+# -----------------------------------------------------------------------------
+# SHAPED / LATE CLASSES
+# -----------------------------------------------------------------------------
+@RIGHT_PLAIN        = [_a _e _p _o _y _c _u _u2 _b2];
+@RIGHT_MIDISH       = [_a_mid_ _p_mid_ _c_mid_ _mid_b_ _u_mid_ _b2_mid_];
+@RIGHT_LOWISH       = [_e_low_ _o_low_ _y_low_ _u2_low_];
+@RIGHT_DOUBLEISH    = [_a_double_ _c_double_ _o_double_ _y_double_ _u_double_ _double_u2_];
+@RIGHT_SLIKE        = [_a_s_ _e_s_ _p_s_ _c_s_ _o_s_ _y_s_ _b2_s_ _u2_s_];
+@LEFT_A             = [a_];
+@LEFT_O             = [o_];
+@LEFT_C             = [c_];
+@LEFT_B             = [b_];
+@LEFT_U             = [u_];
+@LEFT_U2            = [u2_];
+@LEFT_MIDISH        = [_mid_a_ _mid_c_ _mid_u2_ _mid_b_];
+@LEFT_DOUBLEISH     = [_double_a_ _double_c_ _double_o_ _double_u2_];
+@LEFT_SLIKE_BOTTOM  = [_s_mid_ _s_low_ _s_a_ _s_c_ _s_o_ _s_b_ _s_u _s_u2_];
+
+# Existing role glyphs kept as documentation for the codegen pass.
+@ROLE_ONSETS        = [onset_t onset_d onset_s onset_f onset_n onset_q];
+@ROLE_CODAS         = [coda_f coda_t coda_k coda_n coda_s coda_j coda_h];
+@ROLE_ISOLATED      = [isolated_t isolated_d isolated_f isolated_n isolated_q isolated_i isolated_j isolated_h isolated_l isolated_k];
+
+feature ccmp {
+    script DFLT;
+    language dflt required;
+    script latn;
+    language dflt required;
+
+    # -------------------------------------------------------------------------
+    # PASS 1: i and prefix hints
+    # -------------------------------------------------------------------------
+    lookup I_AND_PREFIX_HINTS {
+        lookupflag IgnoreMarks;
+
+        sub @RAW_INLINE_NO_I i' @RAW_INLINE by floating_i;
+        sub @RAW_ONSET_SINGLE i' @RAW_INLINE by floating_i;
+        sub @RAW_INLINE i' @RAW_LINE_CODA by coda_i;
+        sub @RAW_INLINE i' k @RAW_INLINE by prefix_i;
+        sub @RAW_INLINE i' k by coda_i;
+
+        sub i' @RAW_ONSET_SINGLE @RAW_INLINE by prefix_i;
+        sub o' @RAW_ONSET_SINGLE @RAW_INLINE by prefix_o;
+        sub i' q @RAW_INLINE by prefix_i;
+        sub o' q @RAW_INLINE by prefix_o;
+        sub prefix_o t' by onset_d;
+    } I_AND_PREFIX_HINTS;
+
+    # -------------------------------------------------------------------------
+    # PASS 2: floating j / h
+    # -------------------------------------------------------------------------
+    lookup J_H_FLOATING_HINTS {
+        lookupflag IgnoreMarks;
+
+        # TODO: narrow this to the validated hj / hl compatibility set once
+        # ji / ij handling is frozen.
+        sub @RAW_VOWELS j' @RAW_VOWELS by floating_j;
+        sub @RAW_VOWELS h' @RAW_VOWELS by floating_h;
+        sub @RAW_VOWELS j' by coda_j;
+        sub @RAW_VOWELS h' by coda_h;
+    } J_H_FLOATING_HINTS;
+
+    # -------------------------------------------------------------------------
+    # PASS 3: simple context variants
+    # -------------------------------------------------------------------------
+    lookup SIMPLE_CONTEXTUAL_VARIANTS {
+        lookupflag IgnoreMarks;
+
+        sub q b' by b2;
+        sub [t d s] b2' by b;
+        sub [t d s] u2' by u;
+    } SIMPLE_CONTEXTUAL_VARIANTS;
+
+    # -------------------------------------------------------------------------
+    # PASS 4: k / f contextual bodies
+    # -------------------------------------------------------------------------
+    lookup K_CONTEXTUAL_FORMS {
+        lookupflag IgnoreMarks;
+
+        sub k' [a e p c u] by _k_mid_;
+        sub k' [o y b b2] by _k_low_;
+    } K_CONTEXTUAL_FORMS;
+
+    lookup F_CONTEXTUAL_FORMS {
+        lookupflag IgnoreMarks;
+
+        sub f' [a e p c u] by mid_f;
+        sub f' [o y b b2] by low_f;
+    } F_CONTEXTUAL_FORMS;
+
+    # -------------------------------------------------------------------------
+    # PASS 5: consonant cluster helpers
+    # -------------------------------------------------------------------------
+    lookup CONSONANT_CLUSTER_HELPERS {
+        lookupflag IgnoreMarks;
+
+        sub t k s by t_ks_;
+        sub t k by _t_k_;
+        sub t s by _t_s_;
+
+        sub s k by _sk_mid_;
+        sub k s by k_s_;
+        sub s t by s_d_;
+        sub s d by s_d_;
+    } CONSONANT_CLUSTER_HELPERS;
+
+    # -------------------------------------------------------------------------
+    # PASS 6: l bridge sizing
+    # -------------------------------------------------------------------------
+    lookup L_BRIDGE {
+        lookupflag IgnoreMarks;
+
+        sub l' @RAW_L_LL by ll_l;
+        sub l' @RAW_L_SS by ss_l;
+        sub l' @RAW_L_LS by ls_l;
+        sub l' @RAW_L_SL by sl_l;
+
+        sub @RAW_L_LL l' by ll_coda_l;
+        sub @RAW_L_SS l' by ss_coda_l;
+        sub @RAW_L_LS l' by ls_coda_l;
+        sub @RAW_L_SL l' by sl_coda_l;
+    } L_BRIDGE;
+
+    lookup L_LEFT_LONG_ADJUST {
+        lookupflag IgnoreMarks;
+
+        sub s ss_coda_l' by ls_coda_l;
+        sub s sl_coda_l' by ll_coda_l;
+    } L_LEFT_LONG_ADJUST;
+
+    # Prefix q ligature kept as a compact helper.
+    lookup PREFIX_S_Q_LIG {
+        lookupflag IgnoreMarks;
+
+        sub prefix_s q by _sq_;
+    } PREFIX_S_Q_LIG;
+
+    lookup S_FORCES_LEFT_LONG_L {
+        lookupflag IgnoreMarks;
+
+        sub s ss_l' by ls_l;
+        sub s sl_l' by ll_l;
+    } S_FORCES_LEFT_LONG_L;
+
+    lookup S_L_LIGATURES {
+        lookupflag IgnoreMarks;
+
+        sub s ls_l by _s__ls_l;
+        sub s ll_l by _s__ll_l;
+    } S_L_LIGATURES;
+
+    # -------------------------------------------------------------------------
+    # PASS 7: split inline nuclei
+    # -------------------------------------------------------------------------
+    lookup SPLIT_INLINE_NUCLEI {
+        sub a by a_ _a;
+        sub e by a_ _e;
+        sub p by a_ _p;
+        sub o by o_ _o;
+        sub y by o_ _y;
+        sub b by b_ _o;
+        sub b2 by o_ _b2;
+        sub c by c_ _c;
+        sub u by u_ _u;
+        sub u2 by u2_ _u2;
+    } SPLIT_INLINE_NUCLEI;
+
+    # -------------------------------------------------------------------------
+    # PASS 8: explicit vowel pair joins
+    # -------------------------------------------------------------------------
+    lookup EXPLICIT_VOWEL_PAIR_JOINS {
+        lookupflag IgnoreMarks;
+
+        sub _a' o_ by _ao_;
+        sub _a' c_ by _ac_;
+        sub _a' u_ by _au_;
+
+        sub _p' a_ by _pa_;
+        sub _p' c_ by _pc_;
+
+        sub _c' a_ by _ca_;
+        sub _c' o_ by _co_;
+        sub _c' c_ by _cc_;
+        sub _c' u_ by _cu_;
+
+        sub _o' a_ by _oa_;
+        sub _o' c_ by _oc_;
+
+        sub _y' a_ by _ya_;
+        sub _y' o_ by _yo_;
+        sub _y' c_ by _yc_;
+    } EXPLICIT_VOWEL_PAIR_JOINS;
+
+    # -------------------------------------------------------------------------
+    # PASS 9: t / d family helpers after vowel split
+    # -------------------------------------------------------------------------
+    lookup T_D_VOWEL_HELPERS {
+        lookupflag IgnoreMarks;
+
+        sub t @LEFT_A by _t_a_;
+        sub t @LEFT_B by _t_b_;
+        sub t @LEFT_C by _t_c_;
+        sub t @LEFT_O by _t_o_;
+        sub t @LEFT_U by _t_u_;
+
+        sub d @LEFT_A by _d_a_;
+        sub d @LEFT_B by _d_b_;
+        sub d @LEFT_C by _d_c_;
+        sub d @LEFT_O by _d_o_;
+        sub d @LEFT_U by _d_u_;
+
+        sub onset_d @LEFT_A by _d_a_;
+        sub onset_d @LEFT_B by _d_b_;
+        sub onset_d @LEFT_C by _d_c_;
+        sub onset_d @LEFT_O by _d_o_;
+        sub onset_d @LEFT_U by _d_u_;
+    } T_D_VOWEL_HELPERS;
+
+    # -------------------------------------------------------------------------
+    # PASS 10: legacy fallbacks and mark cleanup
+    # -------------------------------------------------------------------------
+    lookup DEFAULT_FORMS {
+        sub t by onset_t;
+        sub d by onset_d;
+        sub f by onset_f;
+        sub n by onset_n;
+        sub q by onset_q;
+        sub s by onset_s;
+
+        sub k by isolated_k;
+        sub j by isolated_j;
+        sub h by isolated_h;
+        sub l by isolated_l;
+        sub i by isolated_i;
+    } DEFAULT_FORMS;
+
+    # Draft-only cleanup helpers.
+    # d and g are intentionally split late so the current legacy helpers can
+    # still see the plain letter when needed.
+    lookup DEFERRED_MARK_NORMALIZATION {
+        lookupflag IgnoreMarks;
+
+        sub onset_d by d_ d_mark;
+        sub g by _g_double_ g_mark;
+    } DEFERRED_MARK_NORMALIZATION;
+
+    lookup D_MARK_AFTER_PREFIX_S {
+        lookupflag IgnoreMarks;
+
+        sub prefix_s d_mark' by d_mark_ps;
+    } D_MARK_AFTER_PREFIX_S;
+
+    # -------------------------------------------------------------------------
+    # Codegen notes preserved from the draft
+    # -------------------------------------------------------------------------
+    #
+    # - The draft renames k_mid_ / k_low_ without the leading underscore, but
+    #   the current imported glyph set still uses the underscored names.
+    # - prefix_s / prefix_f stay as direct source glyphs for now.
+    # - onsets, codas, and floating slots that need full matrix expansion remain
+    #   codegen tasks rather than hand-maintained lookup tables.
+    # - g currently reuses _g_double_ as its body until the rename plan is
+    #   frozen.
+    # - coda_i is intentionally distinct from isolated_i now.
+    # - d_seed / g_seed / onset_g remain future cleanup slots.
+    # - ji / ij normalization is still a separate pass.
+    # - Any matrix not expanded here is intentionally left as a TODO for the
+    #   next generator pass.
+    #
+} ccmp;
