@@ -1,32 +1,710 @@
-
-Celles là sont quelques idées ; feature_logic contient des idées plus "actuelles" et travaillées.
-
-PREMIERE passe CODAS ONSETS :
-
-On parcourt la séquence à la recherche de codas valides : une coda précède un noyau (donc doit y avoir des voyelles inlines valides ou "i") 
-et a les règles décrites dans le document.
-
-Les codas flottantes ne peuvent pas être suivies d'une autre voyelle sinon ce sont plus des codas.
-
-On regarde aussi les règles avec les onsets et on essaie de voir quelles consonnes sont dans une bonne séquence pour former un onset (toutes les combinaisons correctes)
-
-SECONDE passe ISOLATED :
-
-Toutes les autres lettres passent en format isolé ; on choisit si "i" sera une flottante ou un préfixe.
-
-TROISIEME passe FORMES JOINTES :
-
-On traverse toutes les combinaisons et on transforme toutes les lettres INLINE VOWELS + ONSETS + CODAS (à l'exception des flottantes) en leurs formes jointes.
-Pour les lettres qui n'ont pas besoin de forme jointe et à la place leur changement repose sur un positioning (par exemple pour "i" préfixe), on les laisse dans leur forme actuelle.
-
-QUATRIEME passe POSITIONING :
-
-Ajuste la hauteur des lettres en fonction de leur statut, complémentaire à la passe de forme jointe.
-
-CINQUIEME passe FORMES JOINTES DIACRITIQUES :
-
-Pour "l" essentiellement.
-
-SIXIEME passe POSITIONING ACCENTS : 
-
-Positionnement d'acents cumulés qui se suivent genre j et h. 5 et 6 sont un mirror de 3 et 4, mais pour les diacritiques.
+SEISO FONT LOGIC — CANONICAL SPEC
+=================================
+This document is the canonical plain-language logic spec for the Seiso font,
+based on the original design notes plus all later revisions in the discussion.
+It is deliberately holistic:
+- it explains what the font is doing conceptually,
+- it explains why certain OpenType decisions were made,
+- it records the latest frozen rules,
+- and it records the remaining explicit assumptions / slots.
+----------------------------------------------------------------------
+1. WHY THE FONT IS BUILT THIS WAY
+----------------------------------------------------------------------
+Seiso is not merely a decorative transformation of Latin letters.
+The font reconstructs the behavior of another script from Latin input.
+That means:
+- substitutions and ligatures are not optional cosmetics,
+- they define the script’s reading order and visual structure,
+- if they fail, the rendered result may become unreadable or logically wrong.
+Because browser support is unreliable for more specialized features, the font
+must place the core logic inside a required feature path, chiefly ccmp
+(and, if needed, positioning lookups written in the same feature block).
+The design also assumes that:
+- only one mark-ignore group is reliable in browsers,
+- therefore all floating material that the line must ignore should be in GDEF
+  mark classes,
+- and line-building lookups should use IgnoreMarks wherever possible.
+----------------------------------------------------------------------
+2. GLOBAL WRITING MODEL
+----------------------------------------------------------------------
+The script builds blocks/syllables of the form:
+    [Prefix] + [Onset] + [Pseudo-Nucleus] + [Coda]
+Where:
+- Prefix:
+  prefix-like material before the main onset. The important prefixes are:
+  - prefix_s
+  - prefix_f
+  - prefix_i
+  - prefix_o (logical/helper only; same visible outline as o in v1)
+- Onset:
+  one or two solid consonants, plus at most one floating onset slot after them.
+- Pseudo-Nucleus:
+  one or more inline vowels, optionally interrupted by floating marks.
+- Coda:
+  up to one non-floating coda, plus at most one floating coda;
+  k is exclusive in coda.
+No OpenType anchor system is assumed.
+The words “high”, “high-mid”, “mid”, “low” are conceptual connection classes:
+they help define relationships between glyphs and how they should be drawn,
+but the final implementation relies on substitutions and later positioning,
+not anchor attachment.
+----------------------------------------------------------------------
+3. LETTER GROUPS
+----------------------------------------------------------------------
+3.1 Inline nucleus letters
+--------------------------
+Core inline vowels:
+- a
+- e
+- p
+- o
+- b / b2
+- y
+- c
+- u / u2
+- i (only when i is full-width inline, not when it becomes floating_i or prefix_i)
+Shared split structure:
+- a  = a_  _a
+- e  = a_  _e
+- p  = a_  _p
+- o  = o_  _o
+- y  = o_  _y
+- b  = b_  _o
+- b2 = o_  _b2
+- c  = c_  _c
+- u  = u_  _u
+- u2 = u2_ _u2
+Therefore:
+- a / e / p share the same left half a_
+- o / y / b2 share the same left half o_
+- o / b share the same right half _o
+i stays full-width and is not split into halves.
+3.2 Floating letters / marks
+----------------------------
+Floating-capable letters:
+- i (only in floating_i mode)
+- j
+- h
+- l
+j and h are pure floating/coda marks.
+l is the width-sensitive horizontal bridge above a vowel (or below in coda).
+3.3 Solid consonants
+--------------------
+Solid onset/coda consonants:
+- k
+- t
+- d (typed d = d-family + d mark)
+- f
+- s
+- n
+- q
+- g
+g is special:
+- conceptually it behaves like a “double-family” onset, like n,
+- graphically it can be drawn as a k-like body with an added internal line,
+- in the canonical feature file draft, this is simplified as explicit g_mid_ /
+  g_low_ outputs.
+----------------------------------------------------------------------
+4. AMBIGUITY PREFERENCES
+----------------------------------------------------------------------
+These are the latest frozen preferences when a raw sequence could in theory
+be interpreted more than one way.
+4.1 Onset-preferring when ambiguous
+-----------------------------------
+- f
+- k
+- t
+Also, in practice:
+- n, q, d, g are treated as onset-oriented when they stand before a nucleus,
+  because their intended productive role is onset-like.
+4.2 Coda-preferring when ambiguous
+----------------------------------
+- s
+- j
+- h
+NOTE:
+One late revision accidentally mentioned h on both sides of the preference
+statement. The canonical assumption used here is:
+- h is coda-preferring / floating-preferring,
+- not onset-preferring.
+If that was not intended, this single point is the first thing to revisit.
+----------------------------------------------------------------------
+5. PREFIXES
+----------------------------------------------------------------------
+Canonical prefixes:
+- prefix_s
+- prefix_f
+- prefix_i
+- prefix_o
+5.1 prefix_s and prefix_f
+-------------------------
+They are entered with dedicated prefix input keys (often represented in notes
+as S / F). They are not inferred from ordinary lowercase s/f in every case.
+5.2 prefix_i
+------------
+prefix_i is distinct and must remain separate because it will later need its
+own positioning behavior.
+5.3 prefix_o
+------------
+prefix_o is mostly a logical/helper state in v1:
+- same visible outline as ordinary o,
+- used to tell the parser “this o is acting as a prefix”,
+- especially important because prefix_o before t forces the t into the d-family.
+q can have prefixes before it like any other onset.
+Special prefix ligatures frozen so far:
+- prefix_s + q -> _sq_
+- prefix_s + d-family mark/context gets special alternates
+- prefix_s + ks-family gets a special sk_s_ head
+Most other prefix behavior is intended for positioning later, not dedicated
+ligature shapes.
+----------------------------------------------------------------------
+6. ONSETS
+----------------------------------------------------------------------
+6.1 Frozen valid onset families
+-------------------------------
+The latest frozen solid onset inventory is:
+Single-solid:
+- k
+- d
+- t
+- f
+- s
+- n
+- q
+- g   (kept in the canonical logic even if one late short list omitted it)
+Two-solid:
+- st
+- sf
+- ts
+- tk
+- tf
+- ks
+- kt
+- kf
+- fs
+After any of those, there may be:
+- one optional floating onset slot (j / h / l)
+That optional floating slot does NOT change the connection logic of the onset.
+It is ignored for deciding whether the onset connects like:
+- k/f family,
+- n/g double family,
+- t/d family,
+- or s family.
+6.2 Head/body interpretation of onset families
+----------------------------------------------
+The latest revisions make the onset logic much clearer if it is understood as
+a head + body system.
+a) k/f family endings
+---------------------
+If the onset ends in k or f, the actual connection to the nucleus is carried
+by the k/f-like body.
+Examples:
+- k    -> k body
+- tk   -> t head + k body
+- tf   -> t head + f body
+- kf   -> k head + f body
+- sf   -> s head + f body
+The head changes, but the body still behaves like k/f for connecting to the
+nucleus.
+b) n/g family endings
+---------------------
+n and g use the “double” connection family.
+They trigger the double-type left vowel entries where those exist.
+g is visually close to k, but structurally it belongs here.
+c) t/d family endings
+---------------------
+t has its own special custom vowel-join system.
+d is not a separate body family; it is the lowered version of the t family.
+t becomes d-family when:
+- it is explicitly typed as d (typed d = d-family + d mark)
+- it is preceded by s (st)
+- it is preceded by k (kt)
+- it is preceded by prefix_o
+Therefore:
+- st = s head over d-family
+- kt = k head over d-family
+- prefix_o + t = prefix_o + d-family
+- typed d = d-family + d mark
+d cannot be productively preceded by ordinary solid onset material except in
+the special prefix_s + d case.
+d) s family endings
+-------------------
+s has a top/head component and a bottom component.
+Bare s before a nucleus behaves like:
+- s_ + _s_X_
+Where _s_X_ is chosen from the vowel class:
+- _s_a_
+- _s_b_
+- _s_c_
+- _s_o_
+- _s_u
+- _s_u2_
+When something precedes s in the onset, that preceding consonant gets its own
+special head shape over the same s-family bottom:
+- ts -> t_s_ + _s_X_
+- ks -> k_s_ + _s_X_
+- fs -> f_s_mid_/f_s_low_ + _s_X_
+This is why old names like s_t_ are not canonical anymore:
+the canonical form is t_s_ (t head before s family), not s_t_.
+6.3 Canonical visible expansion of onset families
+-------------------------------------------------
+Single families:
+- t   -> t_ + _t_{A/B/C/O/U}
+- d   -> d_ + _d_{A/B/C/O/U} + d_mark
+- s   -> s_ + _s_{A/B/C/O/U/U2}
+- k   -> k_mid_ or k_low_
+- f   -> mid_f or low_f
+- n   -> onset_n + double-family left vowel forms
+- q   -> onset_q (mostly positioning logic later)
+- g   -> g_mid_ or g_low_ + double-family left vowel forms
+Cluster families:
+- st  -> s_d_ + _d_{A/B/C/O/U}
+- kt  -> k_d_ + _d_{A/B/C/O/U}
+- ts  -> t_s_ + _s_{A/B/C/O/U/U2}
+- ks  -> k_s_ + _s_{A/B/C/O/U/U2}
+- fs  -> f_s_mid_/f_s_low_ + _s_{A/B/C/O/U/U2}
+- tk  -> t_k_mid_/t_k_low_ + k_mid_/k_low_
+- tf  -> t_f_mid_/t_f_low_ + mid_f/low_f
+- kf  -> k_f_mid_/k_f_low_ + mid_f/low_f
+- sf  -> s_f_mid_/s_f_low_ + mid_f/low_f
+The specific right piece chosen for t/d/s depends on the next vowel’s left-half
+class:
+- A class => a_  (used by a / e / p)
+- O class => o_  (used by o / y / b2)
+- C class => c_
+- B class => b_
+- U class => u_
+u2 is not allowed after t/d/s families in the current frozen logic; it is
+forced back to u before that happens.
+----------------------------------------------------------------------
+7. NUCLEUS LOGIC
+----------------------------------------------------------------------
+7.1 Split structure
+-------------------
+All inline vowels except i are split into left + right halves.
+7.2 Pair-specific joins
+-----------------------
+Only explicitly listed pair joins get custom middle pieces.
+Everything else just sits as plain right-half + plain left-half.
+Current explicit pair list:
+- a -> o : _ao_
+- a -> c : _ac_
+- a -> u : _au_
+- p -> a : _pa_
+- p -> c : _pc_
+- c -> a : _ca_
+- c -> o : _co_
+- c -> c : _cc_
+- c -> u : _cu_
+- o -> a : _oa_
+- o -> c : _oc_
+- y -> a : _ya_
+- y -> o : _yo_
+- y -> c : _yc_
+Unspecified examples:
+- aa = a_ _a a_ _a
+- etc.
+7.3 Left connection families of vowels
+--------------------------------------
+The left half of the first vowel in a nucleus may be replaced depending on the
+preceding onset family.
+k/f family:
+- use _mid_* or _low_o_ depending on whether the body is mid or low
+n/g family:
+- use _double_* where those exist
+s family:
+- use _s_* bottoms
+t/d family:
+- use _t_* / _d_* right pieces after the family head
+q:
+- does not force a visible left-half change in v1; its behavior is mainly
+  handled through contextual variant forcing (b2 / u2) and later positioning
+7.4 Right connection families of vowels
+---------------------------------------
+The right half of a vowel may be replaced depending on the following coda.
+Examples:
+- a + f/t -> _a_mid_
+- a + n   -> _a_double_
+- a + s   -> _a_s_
+- e + f/t -> _e_low_
+- e + s   -> _e_s_
+- p + f/t -> _p_mid_
+- p + n   -> _p_n_
+- p + s   -> _p_s_
+- c + f/t -> _c_mid_
+- c + n   -> _c_double_
+- c + s   -> _c_s_
+- o + f/t -> _o_low_
+- o + n   -> _o_double_
+- o + s   -> _o_s_
+- y + f/t -> _y_low_
+- y + n   -> _y_double_
+- y + s   -> _y_s_
+- b2 + f/t/n -> _b2_mid_   (fallback because there is no dedicated double-right)
+- b2 + s     -> _b2_s_
+- u + f/t -> _u_mid_
+- u + n   -> _u_double_
+- u2 + f/t/n -> _u2_low_   (fallback to the simple right-side family)
+- u2 + s     -> _u2_s_
+If no dedicated double form exists, use the simple insertion form on that side.
+That rule was explicitly frozen in the revisions.
+----------------------------------------------------------------------
+8. i LOGIC
+----------------------------------------------------------------------
+i is the most context-sensitive letter in the system.
+8.1 i modes
+-----------
+i can become:
+- inline i         (full-width nucleus letter)
+- floating_i       (ignored by line-building)
+- prefix_i
+- coda_i           (logical only; visually can alias isolated_i)
+- isolated_i
+8.2 floating_i
+--------------
+floating_i is used when line letters must visually join across the i.
+Frozen cases:
+- between two inline vowels
+- between a solid onset and a nucleus
+- before line codas f / n / t / s
+8.3 full-width i
+----------------
+i stays full-width when:
+- one side is empty or floating-only
+- it is before coda_k
+- it is its own inline nucleus element
+The discussion later simplified coda_i:
+- coda_i does not need its own separate drawing;
+- it can be rendered as isolated_i.
+8.4 prefix_i
+------------
+i becomes prefix_i before a valid onset.
+8.5 ji / ij
+-----------
+Both should normalize to:
+- inline i + floating_j
+8.6 bad double-floating interactions
+------------------------------------
+Only these double floating pairs were explicitly frozen as valid:
+- hj
+- hl
+ji and ij are special and do not count as ordinary double-floating pairs.
+All other double-floating sequences are incompatible and should split.
+The exact split strategy is still one of the few implementation areas that may
+need later tightening in the feature code if the first pass is not sufficient.
+----------------------------------------------------------------------
+9. j / h / l LOGIC
+----------------------------------------------------------------------
+9.1 j and h
+-----------
+j and h can be:
+- floating over the nucleus
+- coda marks under/after the line
+- isolated
+When ambiguous, they are coda-preferring.
+9.2 l as bridge
+---------------
+l is the horizontal bridge floating above the vowel.
+Width classes:
+- ll_l for a / p
+- ss_l for o / y / c
+- ls_l for e / b / u
+- sl_l for b2 / u2
+Coda-l mirrors that below the line:
+- ll_coda_l
+- ss_coda_l
+- ls_coda_l
+- sl_coda_l
+9.3 s forcing long-left l
+-------------------------
+If s connects into l, l must be long on the left.
+Therefore:
+- ss_l -> ls_l
+- sl_l -> ll_l
+- ls_l stays ls_l
+- ll_l stays ll_l
+And the dedicated ligatures are:
+- _s__ls_l
+- _s__ll_l
+----------------------------------------------------------------------
+10. CODAS
+----------------------------------------------------------------------
+10.1 Coda capacity
+------------------
+The coda slot is:
+- max one non-floating coda
+- plus max one floating coda
+k is exclusive in the coda:
+- if k is the coda, it does not share the coda slot with another non-floating
+  consonant.
+10.2 Width behavior
+-------------------
+From the earlier documents:
+- floating codas (j / h / l, and s in its coda-like mark behavior) do not add
+  normal line width
+- f / n / t / k add line width 1
+10.3 Linear codas
+-----------------
+f:
+- becomes mid_f or low_f depending on the preceding right-side vowel class
+t:
+- must distinguish coda_t_mid and coda_t_low
+n:
+- stays coda_n
+- the vowel before it chooses a double-family right form if it has one, else
+  a fallback simple right form
+s:
+- the vowel before it chooses _X_s_ if available
+- s itself becomes _mid_coda_s or _low_coda_s
+k:
+- special coda
+- after full-width i it uses a special alternate drawing coda_k_i
+- otherwise it stays coda_k
+10.4 Floating codas
+-------------------
+j / h / l are marks in the coda.
+----------------------------------------------------------------------
+11. CONTEXTUAL VARIANTS b / b2 and u / u2
+----------------------------------------------------------------------
+11.1 u / u2
+-----------
+u2:
+- can be typed explicitly (for example by U)
+- is allowed after mid-joined consonants:
+  - f
+  - k
+  - g
+  - n
+  - q
+  - and floatings
+- is NOT allowed after:
+  - t
+  - d
+  - s families
+If explicit u2 lands in an incompatible context, it is forced back to u.
+11.2 b / b2
+-----------
+b2:
+- can be typed explicitly (for example by B)
+- is also forced by q
+- falls back to b in incompatible left contexts
+- also falls back before a non-floating coda
+b shares the right half _o with o.
+----------------------------------------------------------------------
+12. q
+----------------------------------------------------------------------
+q is:
+- a standalone onset only
+- prefixable like any other onset
+- mostly a positioning family rather than a heavy ligature family in v1
+Special ligature explicitly frozen earlier:
+- prefix_s + q -> _sq_
+q also forces:
+- b -> b2
+- u -> u2
+----------------------------------------------------------------------
+13. d AND ITS MARK
+----------------------------------------------------------------------
+The “d” letter is not a totally separate body family.
+It is:
+- the lowered t-family
+- plus the d mark above it when explicitly typed
+So:
+- typed d = d-family + d_mark
+- st = s head + d-family (no typed d mark)
+- kt = k head + d-family (no typed d mark)
+- prefix_o + t = d-family
+- prefix_s + typed d has a special prefix form and a special d_mark_ps form
+Canonical glyphs involved:
+- d_
+- _d_a_
+- _d_b_
+- _d_c_
+- _d_o_
+- _d_u_
+- d_mark
+- d_mark_ps
+- s_d_
+- k_d_
+- prefix_s_d_
+----------------------------------------------------------------------
+14. g
+----------------------------------------------------------------------
+The design history said two slightly different things about g:
+- visually it is basically a k-like body with an added internal line
+- structurally it behaves like n in its connection class (double family)
+The canonical draft resolves that as:
+- g is a productive onset family
+- it chooses double-family left vowel forms like n
+- it has visible outputs g_mid_ / g_low_ in the current canonical feature draft
+If later you want to return to a pure “k body + separate g mark” approach,
+that is still possible, but it is a later cleanup pass, not the canonical v1.
+----------------------------------------------------------------------
+15. BROWSER / OPENTYPE IMPLEMENTATION STRATEGY
+----------------------------------------------------------------------
+15.1 One ccmp feature
+---------------------
+All critical logic is kept in one required ccmp feature because browser support
+for more specialized feature combinations is unreliable.
+15.2 IgnoreMarks
+----------------
+The mark-ignore mechanism is used heavily:
+- line-building sees through floating_i / floating_j / floating_h / l forms
+- so the structural line can connect correctly across them
+15.3 Positioning later
+----------------------
+Vertical / cosmetic alignment is intentionally deferred to positioning:
+- prefix heights
+- d mark placement
+- q spacing
+- final stacked floating mark placement
+- any later g internal-line positioning if g is re-split graphically
+----------------------------------------------------------------------
+16. RECOMMENDED OPEN TYPE PASSES
+----------------------------------------------------------------------
+Canonical pass order:
+1. Input normalization
+   - B -> b2
+   - U -> u2
+   - S -> prefix_s
+   - F -> prefix_f
+   - d -> d_seed + d_mark
+2. ji / ij normalization
+   - ji / ij -> i + floating_j
+3. Raw floating hints
+   - convert raw j / h / l to floating or coda helpers
+   - convert i to floating_i / prefix_i / coda_i / full-width form as needed
+4. Prefix hints
+   - prefix_i
+   - prefix_o
+5. Tag last solid of valid onsets
+6. Tag first solid of valid two-solid onsets
+7. Collapse onset clusters
+8. Apply prefix_o -> d-family over t
+9. Tag remaining codas
+10. Fallback isolated forms
+11. Contextual b2 / u2 decisions
+12. Size l bridges
+13. Split inline nuclei
+14. Expand onset families to visible heads / bodies
+15. Replace body_t / body_d / body_s by the correct right pieces
+16. Apply generic left joins for k/f/n/g
+17. Apply explicit vowel-pair joins
+18. Apply vowel-right-for-coda substitutions
+19. Finalize linear codas
+20. Apply prefix_s specials
+21. Alias coda_i -> isolated_i
+22. Later positioning
+----------------------------------------------------------------------
+17. REQUIRED HELPER GLYPHS / STATES
+----------------------------------------------------------------------
+The canonical feature draft expects the following helpers to exist.
+17.1 Helper state glyphs
+------------------------
+- d_seed
+- onset_k
+- onset_t
+- onset_d
+- onset_f
+- onset_s
+- onset_n
+- onset_q
+- onset_g
+- onset_st
+- onset_sf
+- onset_ts
+- onset_tk
+- onset_tf
+- onset_ks
+- onset_kt
+- onset_kf
+- onset_fs
+- body_t
+- body_d
+- body_s
+- floating_l
+- coda_l
+- ji_helper
+- ij_helper
+These do not all need unique final contours.
+Some can be duplicates or zero-logic helper glyphs.
+17.2 Visible glyphs that the canonical feature draft expects
+------------------------------------------------------------
+New / canonicalized visible glyphs:
+- k_mid_
+- k_low_
+- g_mid_
+- g_low_
+- t_
+- k_d_
+- t_s_
+- t_f_mid_
+- t_f_low_
+- k_f_mid_
+- k_f_low_
+- s_f_mid_
+- s_f_low_
+- f_s_mid_
+- f_s_low_
+- prefix_s_d_
+- sk_s_
+- coda_t_mid
+- coda_t_low
+- coda_k_i
+Existing but important:
+- d_mark
+- d_mark_ps
+- t_k_mid_
+- t_k_low_
+- k_s_
+- s_d_
+- _sq_
+- _s__ll_l
+- _s__ls_l
+17.3 Glyphs that are effectively aliases / logical-only
+-------------------------------------------------------
+- prefix_o:
+  logical helper, no distinct visible drawing required from plain o in v1
+- coda_i:
+  logical helper only, can be rendered as isolated_i
+----------------------------------------------------------------------
+18. CANONICAL ASSUMPTIONS FROZEN HERE
+----------------------------------------------------------------------
+These are the assumptions I froze in order to produce a coherent canonical spec.
+1. h is treated as coda/floating-preferring, not onset-preferring.
+2. g is treated as a real productive onset family and gets explicit g_mid_ /
+   g_low_ outputs in v1.
+3. q still keeps the earlier _sq_ ligature with prefix_s.
+4. b2 / u2 still keep the earlier q-forcing behavior.
+5. coda_i is visualized as isolated_i.
+6. prefix_o remains a helper state and not a unique visible outline in v1.
+----------------------------------------------------------------------
+19. REMAINING OPEN SLOTS
+----------------------------------------------------------------------
+The canonical draft is intentionally much more frozen than the earlier notes,
+but a few slots are still worth calling out explicitly:
+[SLOT A] Exact implementation of invalid double-floating sequences
+         beyond ji / ij, hj, hl.
+         The logic is known, but the exact GSUB split strategy may still be
+         adjusted once tested on real text.
+[SLOT B] Final GPOS numeric values for:
+         - prefix heights
+         - d_mark placement
+         - q spacing
+         - final floating stacks
+[SLOT C] If you later want g to become "k body + separate g mark" again
+         instead of explicit g_mid_ / g_low_, that is a later refactor path.
+----------------------------------------------------------------------
+20. SHORT SUMMARY
+----------------------------------------------------------------------
+The shortest accurate summary is:
+- Seiso is built by parsing Latin input into prefix / onset / nucleus / coda.
+- The onset can be one or two solids, plus an optional floating slot.
+- The nucleus is a chain of split vowels, with floatings ignored for line joins.
+- The coda is at most one non-floating + one floating, with special k behavior.
+- t, d, and s families use custom head/body behavior.
+- k/f families use generic mid/low behavior.
+- n/g use double behavior.
+- i is the main context-sensitive troublemaker and is explicitly resolved early.
+- Everything critical lives in one ccmp feature because browsers are unreliable.
+That is the canonical logic this version of the feature file implements.
