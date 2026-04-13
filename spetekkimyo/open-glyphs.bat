@@ -4,7 +4,7 @@ setlocal
 cd /d "%~dp0"
 
 set "PORT=8000"
-set "URL=http://127.0.0.1:%PORT%/glyphs.html"
+set "URL=http://127.0.0.1:%PORT%/live_glyphs.html"
 set "PYEXE="
 
 where py >nul 2>nul && set "PYEXE=py -3"

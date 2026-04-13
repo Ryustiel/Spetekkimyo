@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live glyph shaping</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0f14;
+      --panel: rgba(16, 20, 28, 0.94);
+      --panel-2: rgba(10, 13, 18, 0.94);
+      --border: rgba(160, 173, 190, 0.18);
+      --border-strong: rgba(160, 173, 190, 0.28);
+      --text: #eef3f8;
+      --muted: #aab3be;
+      --ok: #86e29a;
+      --warn: #ffd06b;
+      --error: #ff9a9a;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(80, 120, 180, 0.18), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(68, 180, 160, 0.11), transparent 26%),
+        linear-gradient(180deg, #091016 0%, #06080c 100%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
+    }
+    #panel {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(18, 22, 31, 0.98), rgba(12, 15, 22, 0.96));
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(12px);
+      overflow: auto;
+    }
+    .topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .eyebrow {
+      margin: 0;
+      color: #9db7ff;
+      text-transform: uppercase;
+      letter-spacing: 0.24em;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    h1 {
+      margin: 6px 0 0;
+      font-size: 24px;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+    .lede {
+      margin: 8px 0 0;
+      max-width: 76ch;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      border: 1px solid transparent;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .badge.ok { color: #d8ffe1; background: rgba(70, 162, 91, 0.18); border-color: rgba(134, 226, 154, 0.28); }
+    .badge.warn { color: #fff4cd; background: rgba(255, 208, 107, 0.14); border-color: rgba(255, 208, 107, 0.28); }
+    .badge.error { color: #ffe0e0; background: rgba(255, 154, 154, 0.14); border-color: rgba(255, 154, 154, 0.28); }
+    .input-wrap { display: block; margin-top: 12px; }
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      resize: vertical;
+      border-radius: 14px;
+      border: 1px solid var(--border-strong);
+      background: rgba(5, 8, 12, 0.92);
+      color: var(--text);
+      padding: 12px 14px;
+      outline: none;
+      font: 15px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+    textarea:focus {
+      border-color: rgba(125, 177, 255, 0.75);
+      box-shadow: 0 0 0 1px rgba(125, 177, 255, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    button {
+      appearance: none;
+      border: 1px solid rgba(151, 167, 191, 0.34);
+      background: rgba(26, 31, 41, 0.94);
+      color: var(--text);
+      padding: 9px 13px;
+      border-radius: 12px;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+    }
+    button:hover:not(:disabled) {
+      background: rgba(34, 40, 52, 0.98);
+      border-color: rgba(125, 177, 255, 0.5);
+      transform: translateY(-1px);
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    a { color: #9ec2ff; text-decoration: none; font-size: 13px; }
+    a:hover { text-decoration: underline; }
+    .statusline { color: var(--muted); font-size: 13px; }
+    .statusline.ok { color: var(--ok); }
+    .statusline.warn { color: var(--warn); }
+    .statusline.error { color: var(--error); }
+    #glyphMeta { margin-top: 8px; color: var(--muted); font-size: 12px; }
+    #glyphList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      max-height: 22vh;
+      overflow: auto;
+      padding-bottom: 2px;
+    }
+    .glyph-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 100%;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+    .glyph-chip .idx { opacity: 0.72; font-size: 11px; }
+    .glyph-chip .name { font-weight: 700; overflow-wrap: anywhere; }
+    .glyph-chip .cluster { opacity: 0.82; font-size: 11px; }
+    .tone-0 { background: #331b23; color: #ffd9e2; border-color: #7f4459; }
+    .tone-1 { background: #2b2240; color: #e6ddff; border-color: #6554a3; }
+    .tone-2 { background: #1e3146; color: #d6efff; border-color: #4d86ad; }
+    .tone-3 { background: #173932; color: #d7fff5; border-color: #3e927f; }
+    .tone-4 { background: #2c361a; color: #efffd2; border-color: #7c9c39; }
+    .tone-5 { background: #46341b; color: #fff0d3; border-color: #b0893d; }
+    .tone-6 { background: #432619; color: #ffe1d6; border-color: #b46b4f; }
+    .tone-7 { background: #382235; color: #ffdef7; border-color: #945c8a; }
+    .empty { color: var(--muted); font-style: italic; padding: 8px 0; }
+    details { margin-top: 10px; }
+    summary { cursor: pointer; color: var(--muted); font-size: 12px; user-select: none; }
+    pre {
+      margin: 8px 0 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: #dbe3ee;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 240px;
+      overflow: auto;
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    #workspace { min-height: 0; background: #fff; }
+    iframe { width: 100%; height: 100%; border: 0; background: white; }
+  </style>
+</head>
+<body>
+  <section id="panel">
+    <div class="topline">
+      <div>
+        <p class="eyebrow">Live glyph server</p>
+        <h1>Type text, read the shaped glyphs</h1>
+        <p class="lede">The chips below update live from the last successful compiled font. Recompile only when you click the button. The existing editor stays below in the iframe.</p>
+      </div>
+      <div class="badges">
+        <span id="compileBadge" class="badge warn">not compiled yet</span>
+        <span id="dirtyBadge" class="badge warn" hidden>source changed; recompile needed</span>
+        <a id="fontLink" href="#" target="_blank" rel="noopener" hidden>open compiled font</a>
+      </div>
+    </div>
+
+    <label class="input-wrap" for="sampleInput">
+      <textarea id="sampleInput" spellcheck="false">tue pb</textarea>
+    </label>
+
+    <div class="controls">
+      <button id="compileButton" type="button">Compile font</button>
+      <span id="statusText" class="statusline">Ready.</span>
+    </div>
+
+    <div id="glyphMeta"></div>
+    <div id="glyphList" aria-live="polite"></div>
+
+    <details id="compileDetails">
+      <summary>Compile log</summary>
+      <pre id="compileLog">(none)</pre>
+    </details>
+  </section>
+
+  <main id="workspace">
+    <iframe id="appFrame" src="/glyphs.html" title="Glyph editor"></iframe>
+  </main>
+
+  <script>
+    const sampleInput = document.getElementById("sampleInput");
+    const compileButton = document.getElementById("compileButton");
+    const compileBadge = document.getElementById("compileBadge");
+    const dirtyBadge = document.getElementById("dirtyBadge");
+    const fontLink = document.getElementById("fontLink");
+    const statusText = document.getElementById("statusText");
+    const glyphMeta = document.getElementById("glyphMeta");
+    const glyphList = document.getElementById("glyphList");
+    const compileLog = document.getElementById("compileLog");
+    const compileDetails = document.getElementById("compileDetails");
+
+    let latestStatus = null;
+    let shapeTicket = 0;
+    let pollTimer = null;
+
+    const debounce = (fn, wait) => {
+      let timer = null;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), wait);
+      };
+    };
+
+    function setStatusText(message, kind = "") {
+      statusText.textContent = message;
+      statusText.className = `statusline${kind ? ` ${kind}` : ""}`;
+    }
+
+    function applyBadge(element, text, kind) {
+      element.textContent = text;
+      element.className = `badge ${kind}`;
+    }
+
+    async function fetchJson(url, options = {}) {
+      const response = await fetch(url, { cache: "no-store", ...options });
+      const raw = await response.text();
+      let data = {};
+      if (raw) {
+        try {
+          data = JSON.parse(raw);
+        } catch {
+          data = { error: raw };
+        }
+      }
+      if (!response.ok) {
+        throw new Error(data.error || `${response.status} ${response.statusText}`);
+      }
+      return data;
+    }
+
+    function renderGlyphs(payload) {
+      glyphList.replaceChildren();
+      const glyphs = Array.isArray(payload.glyphs) ? payload.glyphs : [];
+      if (!glyphs.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = sampleInput.value ? "(no glyphs returned)" : "(type something above)";
+        glyphList.appendChild(empty);
+        return;
+      }
+
+      glyphs.forEach((glyph, index) => {
+        const chip = document.createElement("div");
+        chip.className = `glyph-chip tone-${index % 8}`;
+        chip.title = `gid ${glyph.gid}, cluster ${glyph.cluster}`;
+
+        const idx = document.createElement("span");
+        idx.className = "idx";
+        idx.textContent = String(index + 1);
+
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = glyph.name;
+
+        const cluster = document.createElement("span");
+        cluster.className = "cluster";
+        cluster.textContent = `c${glyph.cluster}`;
+
+        chip.append(idx, name, cluster);
+        glyphList.appendChild(chip);
+      });
+    }
+
+    function renderStatus(status) {
+      latestStatus = status;
+
+      if (status.compile_running) {
+        applyBadge(compileBadge, "compiling…", "warn");
+      } else if (status.last_compile_ok === true) {
+        applyBadge(compileBadge, "compiled", "ok");
+      } else if (status.last_compile_ok === false) {
+        applyBadge(compileBadge, "compile failed", "error");
+      } else if (status.preview_available) {
+        applyBadge(compileBadge, "preview ready", "ok");
+      } else {
+        applyBadge(compileBadge, "not compiled yet", "warn");
+      }
+
+      dirtyBadge.hidden = !status.dirty;
+      compileButton.disabled = Boolean(status.compile_running || !status.compiler_available);
+      compileButton.textContent = status.compile_running
+        ? "Compiling…"
+        : (status.preview_available && status.dirty ? "Recompile font" : "Compile font");
+
+      if (status.font_url) {
+        fontLink.hidden = false;
+        const version = status.last_compile_finished || Date.now();
+        fontLink.href = `${status.font_url}?v=${encodeURIComponent(version)}`;
+      } else {
+        fontLink.hidden = true;
+      }
+
+      if (!status.compiler_available) {
+        setStatusText("Compiler unavailable: check ffpython and generate.py.", "error");
+      } else if (!status.shape_available) {
+        setStatusText("Shaper unavailable: install uharfbuzz and fontTools.", "error");
+      } else if (status.compile_running) {
+        setStatusText("Compiling font…", "warn");
+      } else if (!status.preview_available) {
+        setStatusText("Click Compile font to create the first preview.", "warn");
+      } else if (status.dirty) {
+        setStatusText("Source changed. Recompile to refresh the preview.", "warn");
+      } else if (status.last_compile_ok === false) {
+        setStatusText("Last compile failed; the previous preview is still shown.", "warn");
+      } else {
+        setStatusText("Ready.", "ok");
+      }
+    }
+
+    async function refreshStatus() {
+      const status = await fetchJson("/api/status");
+      renderStatus(status);
+      return status;
+    }
+
+    function renderCompileLog(payload) {
+      const stdout = (payload.result?.stdout || "").trim() || "(none)";
+      const stderr = (payload.result?.stderr || "").trim() || "(none)";
+      const exitCode = payload.result?.exit_code ?? "(none)";
+      const extraError = payload.result?.error ? `\nError: ${payload.result.error}` : "";
+      compileLog.textContent =
+        `=== stdout ===\n${stdout}\n\n=== stderr ===\n${stderr}\n\nExit code: ${exitCode}${extraError}`;
+      compileDetails.open = Boolean(payload.result?.error);
+    }
+
+    async function shapeNow() {
+      const ticket = ++shapeTicket;
+      const text = sampleInput.value;
+
+      if (!latestStatus || !latestStatus.preview_available) {
+        glyphMeta.textContent = "No compiled font yet.";
+        renderGlyphs({ glyphs: [] });
+        return;
+      }
+
+      try {
+        const payload = await fetchJson("/api/shape", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (ticket !== shapeTicket) {
+          return;
+        }
+        renderStatus(payload.status);
+        renderGlyphs(payload);
+        glyphMeta.textContent = `${payload.glyph_count} glyph${payload.glyph_count === 1 ? "" : "s"}`;
+        if (payload.status.last_compile_ok === false) {
+          setStatusText("Preview shown from the last successful compile. The newest compile failed.", "warn");
+        } else if (payload.status.dirty) {
+          setStatusText("Preview shown from the last successful compile. Recompile when ready.", "warn");
+        } else {
+          setStatusText("Live parse updated.", "ok");
+        }
+      } catch (error) {
+        if (ticket !== shapeTicket) {
+          return;
+        }
+        glyphMeta.textContent = "";
+        renderGlyphs({ glyphs: [] });
+        setStatusText(error.message || String(error), "error");
+      }
+    }
+
+    const debouncedShape = debounce(shapeNow, 120);
+
+    async function compileFont() {
+      compileButton.disabled = true;
+      setStatusText("Compiling font…", "warn");
+      try {
+        const payload = await fetchJson("/api/compile", { method: "POST" });
+        renderStatus(payload.status);
+        renderCompileLog(payload);
+        if (payload.result.ok) {
+          setStatusText("Compile finished.", "ok");
+        } else if (payload.status.preview_available) {
+          setStatusText("Compile failed; keeping the last successful preview.", "warn");
+        } else {
+          setStatusText(payload.result.error || "Compile failed.", "error");
+        }
+        await shapeNow();
+      } catch (error) {
+        setStatusText(error.message || String(error), "error");
+      } finally {
+        if (latestStatus) {
+          compileButton.disabled = Boolean(latestStatus.compile_running || !latestStatus.compiler_available);
+        } else {
+          compileButton.disabled = false;
+        }
+      }
+    }
+
+    sampleInput.addEventListener("input", () => {
+      if (!latestStatus || !latestStatus.preview_available) {
+        glyphMeta.textContent = "No compiled font yet.";
+        renderGlyphs({ glyphs: [] });
+        return;
+      }
+      debouncedShape();
+    });
+
+    sampleInput.addEventListener("keydown", event => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        compileFont();
+      }
+    });
+
+    compileButton.addEventListener("click", compileFont);
+
+    async function boot() {
+      renderGlyphs({ glyphs: [] });
+      try {
+        const status = await refreshStatus();
+        if (status.preview_available && status.shape_available) {
+          await shapeNow();
+        }
+      } catch (error) {
+        setStatusText(error.message || String(error), "error");
+      }
+      pollTimer = setInterval(async () => {
+        try {
+          await refreshStatus();
+        } catch {
+          /* transient polling failure */
+        }
+      }, 3000);
+    }
+
+    window.addEventListener("beforeunload", () => {
+      if (pollTimer) clearInterval(pollTimer);
+    });
+
+    boot();
+  </script>
+</body>
+</html>
