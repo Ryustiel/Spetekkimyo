@@ -1,34 +1,33 @@
-# Vowels #############
+# =============================================================================
+# SEISO CANONICAL GLYPH INVENTORY
+# =============================================================================
 
+# Vowels ######################################################################
 # A
-
 a = a_ _a
 _ao_
 _ac_
 _au_
-_a_mid_ (joins with coda)
+_a_mid_
 _a_double_
 _a_s_
-_double_a_ (left join left with n and g)  
-_mid_a_ (left join with f and k)
+_double_a_
+_mid_a_
 
 # E
-
 e = a_ _e
-_e_low_ (e behaves like a low insertion point on the right for any other letter)
+_e_low_
 _e_s_
 
 # P
-
 p = a_ _p
 _pa_
 _pc_
-_p_mid_ (For remaining letters, p acts like a mid insertion point only)
+_p_mid_
 _p_n_
 _p_s_
 
 # C
-
 c = c_ _c
 _ca_
 _co_
@@ -41,7 +40,6 @@ _double_c_
 _mid_c_
 
 # O
-
 o = o_ _o
 _oa_
 _oc_
@@ -50,19 +48,15 @@ _o_double_
 _o_s_
 _low_o_
 _double_o_
-prefix_o  (positional helper; keep for now, even if it ends up purely stylistic)
 
 # B
-
 b = b_ _o
-_mid_b_ (b behaves like a mid insertion point on the left with any other letter)
-
+_mid_b_
 b2 = o_ _b2
-_b2_mid_ (b2 behaves like a mid insertion point one the right with any other letter)
+_b2_mid_
 _b2_s_
 
 # Y
-
 y = o_ _y
 _ya_
 _yo_
@@ -72,135 +66,127 @@ _y_double_
 _y_s_
 
 # U
-
 u = u_ _u
-_u_double_
 _u_mid_
-
+_u_double_
 u2 = u2_ _u2
 _u2_s_
 _u2_low_
 _mid_u2_
 _double_u2_
 
-# Consonants #############
 
-# K
+# Consonants ##################################################################
 
-k (forme onset)
-_k_mid_  (current asset name; keep the leading underscore for now)
-_k_low_  (current asset name; keep the leading underscore for now)
-k_s_
+# K Family
+k_mid_            # (Renamed from _k_mid_)
+k_low_            # (Renamed from _k_low_)
+k_d_              # (kt family head: special k on top of d-family)
+k_s_              # (ks family head: k before s-family)
+k_f_mid_          # (kf family head: k before mid f-family)
+k_f_low_          # (kf family head: k before low f-family)
 coda_k
+coda_k_i          # (Special coda k shape after full-width i)
 isolated_k
 
-# SK
-
-_sk_mid_
-_sk_low_
-_sk_s_
-
-# G
-
-_g_double_
-g = _g_double_ g_mark (current split-body + mark strategy)
+# G Family
+# (In v1, g behaves structurally like n, but visibly acts like k + g_mark)
+g_mid_            # (Replaces _g_double_)
+g_low_
 g_mark
+isolated_g
 
-# T
-
-_t_k_
-_t_s_
-_t_mid_  (current mid bridge variant for the t/d family)
-_t_low_  (current low bridge variant for the t/d family)
+# T Family
+t_                # (Bare t head)
 _t_a_
 _t_c_
 _t_o_
 _t_b_
 _t_u_
-coda_t  (standalone coda form)
-onset_t
+t_s_              # (ts family head: t before s-family. Replaces old s_t_)
+t_k_mid_          # (tk family head: t before mid k-family)
+t_k_low_          # (tk family head: t before low k-family)
+t_f_mid_          # (tf family head: t before mid f-family)
+t_f_low_          # (tf family head: t before low f-family)
+coda_t_mid        # (Split from old coda_t)
+coda_t_low        # (Split from old coda_t)
 isolated_t
 
-t_k_low_ (Diacritic style t : only esthetic and spacing)
-t_k_mid_
-
-# D
-
-d = d_ _d_a_ ; d_ _d_o_ ... ("d" is a name for the high-mid version of "t", which is namely used for "d" (bearing the diacritic), but also for "st")
-_d_a_  ("s t a" will map to "s_d_ _d_a_ _a")
+# D Family
+# (Typed d = d_ + d_mark)
+d_                # (Bare d family body)
+_d_a_
 _d_c_
 _d_o_
 _d_b_
 _d_u_
 d_mark
-d_mark_ps
-onset_d
+d_mark_ps         # (Special d mark used when preceded by prefix_s)
+s_d_              # (st family head: s on top of d-family)
 isolated_d
 
-# S
-
-_s (used when s finishes an onset without a pseudo nucleus)
-_mid_s (used when s is after a vowel that attaches mid to the right, such as "a")
-_low_s
-s_t_ (legacy helper; current onset logic prefers s_d_)
-s_d_
-_sq_
-_s__ll_l
-_s__ls_l
-_s_mid_
-_s_low_
+# S Family
+s_                # (Bare s head for onset)
 _s_a_
 _s_c_
 _s_o_
 _s_b_
 _s_u
 _s_u2_
-_low_coda_s
+s_f_mid_          # (sf family head: s before mid f-family)
+s_f_low_          # (sf family head: s before low f-family)
 _mid_coda_s
-onset_s
-prefix_s
+_low_coda_s
+isolated_s
 
-# F
-
-low_f
+# F Family
 mid_f
-coda_f  (will turn into low_f or mid_f depending on the previous context)
-onset_f  (will turn into low_f or mid_f depending on the following context)
+low_f
+f_s_mid_          # (fs family head: f before mid s-family)
+f_s_low_          # (fs family head: f before low s-family)
+coda_f
 prefix_f
 isolated_f
 
-# N
-
-coda_n
+# N Family
 onset_n
+coda_n
 isolated_n
 
-# Q
-
+# Q Family
 onset_q
 isolated_q
 
-# Floating #############
+# Prefixes & Special Ligatures ################################################
+prefix_s
+prefix_s_d_       # (Special prefix_s shape before typed d)
+sk_s_             # (Special prefix_s shape before ks onset)
+_sq_
+_s__ll_l
+_s__ls_l
+
+
+# Floating & Diacritics #######################################################
 
 # I
-
-i
-coda_i
-prefix_i
+i                 # (Inline, full-width)
 floating_i
+prefix_i
 isolated_i
 
 # J
-
-j
+floating_j
 coda_j
-floating_j (floating mark on top of a vowel)
 isolated_j
 
-# L
+# H
+floating_h
+coda_h
+isolated_h
 
-ll_l (ll for large large)
-sl_l (sl for small large)
+# L
+ll_l
+sl_l
 ls_l
 ss_l
 ll_coda_l
@@ -209,9 +195,48 @@ ls_coda_l
 ss_coda_l
 isolated_l
 
-# H
 
-h
-coda_h
-floating_h
-isolated_h
+# =============================================================================
+# LOGICAL / HELPER STATES
+# =============================================================================
+# The OpenType feature file expects these glyph names to exist so it can use 
+# them for structural parsing, but they DO NOT need unique drawings. 
+# They can be empty, non-exporting, or duplicate components of other glyphs.
+
+# Aliases (can share exactly the same drawing as another glyph):
+prefix_o          # (Shares drawing with o)
+coda_i            # (Shares drawing with isolated_i)
+
+# Structural seeds (used temporarily during parsing):
+d_seed
+g_seed
+
+# Normalization helpers (used to fix ji / ij):
+ji_helper
+ij_helper
+
+# Onset state helpers (resolved to head+body later):
+onset_k
+onset_t
+onset_d
+onset_f
+onset_s
+onset_g
+onset_st
+onset_sf
+onset_ts
+onset_tk
+onset_tf
+onset_ks
+onset_kt
+onset_kf
+onset_fs
+
+# Body state helpers (resolved to _right_piece_ later):
+body_t
+body_d
+body_s
+
+# Floating l state helpers (resolved to width-specific forms later):
+floating_l
+coda_l

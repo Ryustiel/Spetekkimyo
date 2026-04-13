@@ -259,6 +259,7 @@ class PreviewManager:
             dirty = self.dirty_override or stored_stamp is None or stored_stamp != current_stamp
             return {
                 "compiler_available": compiler_available(),
+                "compiler_executable": str(FFPYTHON) if FFPYTHON.exists() else None,
                 "shape_available": hb is not None and TTFont is not None,
                 "compile_running": self.compile_running,
                 "dirty": dirty,

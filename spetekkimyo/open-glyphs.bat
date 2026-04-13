@@ -7,9 +7,9 @@ set "PORT=8000"
 set "URL=http://127.0.0.1:%PORT%/live_glyphs.html"
 set "PYEXE="
 
-where py >nul 2>nul && set "PYEXE=py -3"
+where python >nul 2>nul && set "PYEXE=python"
 if not defined PYEXE (
-  where python >nul 2>nul && set "PYEXE=python"
+  where py >nul 2>nul && set "PYEXE=py -3"
 )
 
 if not defined PYEXE (
